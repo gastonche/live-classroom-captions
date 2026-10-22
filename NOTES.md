@@ -289,3 +289,10 @@ That keeps the display as the single, always-on point and the phone as a client 
 - Live-site smoke test (built-in browser): `/show` registered a room via the public PeerJS server, `/speak?engine=fake` paired and went live, and "grip" rendered as "grep". All pages return 200.
 - `WEB_URL` now defaults to the Pages address; forks override it with `VITE_WEB_URL`. The Mac app was rebuilt for it: `Captions-macOS-arm64.zip` (2.1 MB, Apple Silicon only, unsigned). **Not released yet.**
 - The quick tunnel and preview server are stopped. Phones must re-add the app from the permanent address (the old home-screen icon points at a dead origin).
+
+### CI on GitHub (2026-10-22)
+- Chromium e2e (Linux), unit tests, build and size budgets, and prod-build e2e: **pass**.
+- **WebKit e2e fails on GitHub runners, on both Linux and macOS:** the test phone never connects (chip stays "wait"). The same tests pass on a real Mac, and real iPhone Safari works.
+  Locally both engines gather only **mDNS-obfuscated host candidates** (`*.local`) with no STUN. The working theory is that WebKit can't resolve them inside CI VMs.
+  `test/e2e/ice-diagnostic.spec.ts` prints the candidates on CI to confirm. Until fixed, the WebKit CI job is **non-blocking**, so run WebKit e2e on a Mac before releases.
+- First diagnosis ("Linux WebKit lacks WebRTC") was wrong: macOS runners fail the same way.
