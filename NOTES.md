@@ -323,7 +323,7 @@ Real problem: Safari writes "bully" when the teacher says "boolean". Web Speech 
   preview's layout are untouched). A small form opens **below** the preview (in the flow, so it sits above the iOS keyboard) with the tapped word and its
   neighbours as 48 px buttons: tap a neighbour to stretch the selection ("bully" → "bully and"), tap inside to start again. Type the spelling, Save
   (or Enter). `addRule` moves the phrase out of any older rule and joins a rule that already writes the same thing; the live fixer is rebuilt at once.
-- Confirmation is a toast laid **over** the preview's top edge (absolute), hidden after 4 s: no layout jump. Cancel (or Escape) closes it; captions keep
+- Confirmation ("Saved: bully → boolean") replaces the one-line hint under the preview for 3 s, in green, then the hint comes back. The line never wraps (ellipsis), so nothing moves. (First version was a toast over the preview; on the live site it hid the 2-line preview for 4 s, so it moved here.) Cancel (or Escape) closes it; captions keep
   flowing while it's open. The tap that resumes a stopped mic ("needs-tap") does only that: it doesn't open the editor.
 - The heard phrase is stored lowercase (rules are case-insensitive). The preview shows *fixed* text, so tapping a word another rule produced (e.g. "grep"
   from "grab") adds a rule for "grep", which won't re-fix "grab": edit that rule in the Word list instead.

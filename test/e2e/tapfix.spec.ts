@@ -60,7 +60,14 @@ test('tap "bully", correct it to "boolean": new captions use it, and it is saved
   await phone.locator('#tapfix-write').fill('boolean');
   await phone.locator('#tapfix-save').click();
   await expect(panel).toBeHidden();
-  await expect(phone.locator('#tapfix-toast')).toHaveText('Saved. From now on “bully” shows as “boolean”.');
+  const hint = phone.locator('#tapfix-hint');
+  await expect(hint).toHaveText('Saved: bully → boolean');
+  // The confirmation doesn't cover the preview or move it, and goes back to the hint.
+  expect(await place()).toEqual(before);
+  const p = (await phone.locator('#preview').boundingBox())!;
+  const h = (await hint.boundingBox())!;
+  expect(h.y).toBeGreaterThanOrEqual(p.y + p.height);
+  await expect(hint).toHaveText('Tap a wrong word in the preview to fix it.', { timeout: 5_000 });
 
   await say(phone, 'final', 'a bully value');
   await expect(tv.locator('#stage')).toHaveText('it returns a bully a boolean value');
@@ -111,14 +118,14 @@ test('French: the editor speaks French', async ({ browser }) => {
   const { phone } = await liveSession(browser);
   await phone.locator('details:has(#lang) summary').click();
   await phone.locator('#lang').selectOption('fr');
-  await expect(phone.locator('.hint')).toHaveText('Touchez un mot faux dans l’aperçu pour le corriger.');
+  await expect(phone.locator('#tapfix-hint')).toHaveText('Touchez un mot faux dans l’aperçu pour le corriger.');
   await say(phone, 'final', 'une valeur ouifi');
   await tapWord(phone, 'ouifi');
   await expect(phone.locator('#tapfix-label')).toHaveText('Afficher à la place de « ouifi » :');
   await expect(phone.locator('#tapfix-cancel')).toHaveText('Annuler');
   await phone.locator('#tapfix-write').fill('Wi-Fi');
   await phone.locator('#tapfix-save').click();
-  await expect(phone.locator('#tapfix-toast')).toHaveText('Enregistré. Désormais « ouifi » s’affiche « Wi-Fi ».');
+  await expect(phone.locator('#tapfix-hint')).toHaveText('Enregistré : ouifi → Wi-Fi');
   await say(phone, 'final', 'le ouifi marche');
   await expect(phone.locator('#preview')).toContainText('le Wi-Fi marche');
 });

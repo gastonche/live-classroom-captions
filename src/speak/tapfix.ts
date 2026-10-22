@@ -37,9 +37,9 @@ type Els = {
   label: HTMLElement;
   input: HTMLInputElement;
   cancel: HTMLElement;
-  toast: HTMLElement;
+  hint: HTMLElement;
 };
-type Text = { fixShow: string; fixSaved: string };
+type Text = { fixShow: string; fixSaved: string; tapToFix: string };
 
 export function bindTapFix(
   els: Els,
@@ -51,7 +51,7 @@ export function bindTapFix(
   let ws: Word[] = [];
   let a = 0;
   let b = 0;
-  let toastTimer = 0;
+  let hintTimer = 0;
   const phrase = () =>
     ws
       .slice(a, b + 1)
@@ -114,10 +114,14 @@ export function bindTapFix(
     addRule(getLang(), heard, write);
     close();
     onSaved();
-    els.toast.textContent = getText().fixSaved.replace('{heard}', heard).replace('{write}', write);
-    els.toast.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => (els.toast.hidden = true), 4000);
+    // The confirmation takes the hint's line for a moment, so the preview stays fully visible.
+    els.hint.textContent = getText().fixSaved.replace('{heard}', heard).replace('{write}', write);
+    els.hint.classList.add('ok');
+    clearTimeout(hintTimer);
+    hintTimer = window.setTimeout(() => {
+      els.hint.textContent = getText().tapToFix;
+      els.hint.classList.remove('ok');
+    }, 3000);
   });
   els.cancel.addEventListener('click', close);
   els.panel.addEventListener('keydown', (e) => {
