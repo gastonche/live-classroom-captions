@@ -40,9 +40,12 @@ After **End** you can **save or share the transcript** (a `.txt` file) and send 
   **CC** menu-bar icon or **Ctrl+Option+Cmd+↑ / ↓**. **Ctrl+Option+Cmd+C** hides or shows them.
 - **Students can follow on their own phone:** they open `https://gastonche.github.io/live-classroom-captions/view/` and enter
   the same code. They can scroll back through everything said in the session.
-- **Technical words:** speech recognition mishears terms like `grep` ("grab") or `chmod`
-  ("tomato"). The **Word list** on your phone fixes them automatically. English and French bash lists
-  are built in. Add your own terms one per line, like `grip, grab => grep`.
+- **Technical words:** speech recognition mishears terms like `grep` ("grab"), `chmod`
+  ("tomato") or `boolean` ("bully"). The **Word list** on your phone fixes them automatically.
+  English and French **bash** and **programming** lists (JavaScript, TypeScript, HTML/CSS, Python,
+  git, npm, JSON, SQL, regex) are built in and both on by default. If a word still comes out wrong,
+  **tap it in the preview on your phone**, type the right spelling and tap **Save fix**: it is fixed
+  from the next sentence on. You can also edit the list by hand, one rule per line, like `grip, grab => grep`.
 - **If something goes wrong:** the screen says **"Captions interrupted. Teacher: check your phone."**
   so your student knows nothing is being missed. Usually one tap on your phone fixes it.
   If it keeps happening, open **Diagnostics** on your phone, tap **Copy**, and send it to whoever
@@ -53,10 +56,10 @@ After **End** you can **save or share the transcript** (a `.txt` file) and send 
 ## Add a word list for your subject
 
 Word lists are plain files in [`wordlists/`](wordlists/). Copy `bash.en.json`, rename it
-(for example `javascript.en.json`), and change the rules:
+(for example `networking.en.json`), and change the rules:
 
 ```json
-{ "heard": ["java script", "jay s"], "write": "JavaScript" }
+{ "heard": ["d n s", "dee n s"], "write": "DNS" }
 ```
 
 `heard` is what speech recognition writes; `write` is what appears on screen. You can also

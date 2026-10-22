@@ -43,3 +43,16 @@ export async function openViewer(browser: Browser, code: string): Promise<Page> 
   return page;
 }
 
+
+/** Drives the phone's scripted fake engine (?engine=fake). */
+export const say = (phone: Page, kind: 'interim' | 'final', text: string) =>
+  phone.evaluate(([k, t]) => (window as any).__fakeSpeech[k](t), [kind, text] as const);
+
+export async function liveSession(browser: Browser): Promise<{ tv: Page; phone: Page }> {
+  const tv = await openDisplay(browser);
+  const phone = await openPhone(browser, tv.code);
+  await phone.locator('#start').click();
+  await expect(phone.locator('#mic-state')).toHaveText('listening');
+  await expect(tv.page.locator('#live')).toBeVisible();
+  return { tv: tv.page, phone };
+}

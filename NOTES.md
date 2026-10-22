@@ -298,3 +298,40 @@ That keeps the display as the single, always-on point and the phone as a client 
   Playwright's WebKit on the runner gathers **no ICE candidates at all** (no usable interface in that sandbox), and STUN/TURN can't help without one.
   The WebKit CI job stays **non-blocking** (CI conclusion: success). **Run `npx playwright test --project=webkit` on a Mac before releases** (it passes there, 28/28 non-skipped).
 - First diagnosis ("Linux WebKit lacks WebRTC") was wrong: macOS runners fail the same way.
+
+## 2026-10-22 — Programming word packs and tap-to-fix (branch `claude/changes`, PR, not deployed)
+Real problem: Safari writes "bully" when the teacher says "boolean". Web Speech takes no custom vocabulary, so the fixes stay post-correction.
+
+### Packs
+- New `wordlists/programming.en.json` (116 rules, 213 heard phrases) and `programming.fr.json` (55 rules, 131 phrases): JavaScript/TypeScript, React hooks, DOM APIs, HTML/CSS, Python, git/GitHub,
+  npm/Node, JSON, SQL, regex, case styles, loops. Both packs (bash + programming) are on by default: `src/speak/words.ts` merges them per language
+  (`defaultRules`); the editor shows and saves the merged list; Reset restores it.
+- **Existing saved lists:** a saved list now records `packs: ["bash", "programming"]`. A list saved before this change has no `packs`, so on first load the
+  programming pack is merged into it **once**, keeping the teacher's own rules first (a phrase he already maps keeps his spelling). Deleting a pack rule
+  afterwards sticks. Import marks all packs as present, so an imported list is used as is.
+- **Curation rules (precision over recall):** only phrases that aren't ordinary classroom speech. Never plain "get" (git), "in" (int), "car" (char), "no" (null),
+  "Jason", "sequel", "a wait", "rejects", "red X", "to pull", "the dome". Instead: "Jason file / object / data / format", "in Jason", "sequel query / database /
+  injection", "get commit / push / pull / clone...", "two pull" (with "two pull requests" mapped to itself so git talk survives), "four loop", "wild loop".
+  `await` has no rule: Safari writes "await", and "a wait" is ordinary English. "the dome" was dropped after it broke a test sentence.
+- **Known trade-off, asked for:** `bully, bullion, bully and, boo lean => boolean`. "Please don't bully" becomes "don't boolean". A unit test pins this so it's a
+  visible choice; removing the line in the Word list undoes it.
+- **Not changed, worth a look (bash pack, older):** some bash rules map ordinary words: EN "grab", "grape", "sword", "pike", "tomato", "pseudo", "vin";
+  FR "pseudo" (= nickname/username in French). The no-false-positive sentences avoid them; they're a separate decision.
+
+### Tap-to-fix (`src/speak/tapfix.ts`)
+- Tap anywhere on a word in the `/speak` preview. `caretPositionFromPoint` / `caretRangeFromPoint` finds the word (no per-word spans, so `CaptionView` and the
+  preview's layout are untouched). A small form opens **below** the preview (in the flow, so it sits above the iOS keyboard) with the tapped word and its
+  neighbours as 48 px buttons: tap a neighbour to stretch the selection ("bully" → "bully and"), tap inside to start again. Type the spelling, Save
+  (or Enter). `addRule` moves the phrase out of any older rule and joins a rule that already writes the same thing; the live fixer is rebuilt at once.
+- Confirmation is a toast laid **over** the preview's top edge (absolute), hidden after 4 s: no layout jump. Cancel (or Escape) closes it; captions keep
+  flowing while it's open. The tap that resumes a stopped mic ("needs-tap") does only that: it doesn't open the editor.
+- The heard phrase is stored lowercase (rules are case-insensitive). The preview shows *fixed* text, so tapping a word another rule produced (e.g. "grep"
+  from "grab") adds a rule for "grep", which won't re-fix "grab": edit that rule in the Word list instead.
+- Sizes: `/speak` JS 13.9 → 17.7 KB gz (budget 40), CSS 3.0 → 3.2 KB (budget 5).
+
+### Test results (2026-10-22, this Mac)
+- `npm test`: **197 passed** (adds `programming.test.ts`: 48 EN + 19 FR key mappings, 36 EN + 22 FR ordinary sentences that must stay unchanged; `words.test.ts`: merge, migration, tap-to-fix rules, word picking).
+- `npm run build`: budgets ok (/speak 17.7 KB / 40 KB).
+- `npm run e2e`: Chromium **34 passed**; WebKit **32 passed, 2 skipped** (the Chromium-only clipboard test and one other, as before). New `tapfix.spec.ts`: bully → boolean end to end (rule in editor, survives reload), two-word selection, Cancel while captions flow, French strings.
+- `npm run e2e:prod`: **5 passed**.
+- Not tested yet: a real iPhone (tap accuracy on 18 px text, keyboard staying up while tapping word buttons).
