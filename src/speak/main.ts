@@ -9,6 +9,7 @@ import { bcp47, type EngineProblem, type EngineState, type SpeechEngine } from '
 import { WebSpeechEngine } from '../speech/webspeech';
 import { FakeEngine } from '../speech/fake';
 import { bindEditor, fixer } from './words';
+import { bindTapFix } from './tapfix';
 import { log, report } from '../diag';
 import { Transcript, formatTranscript, transcriptFileName } from '../transcript';
 import { registerSW } from '../sw/register';
@@ -192,9 +193,12 @@ function micHealth(): void {
 }
 setInterval(micHealth, 1000);
 
-// iOS sometimes refuses to restart the mic without a tap. Any tap on the phone counts.
+// iOS sometimes refuses to restart the mic without a tap. Any tap on the phone counts,
+// and that tap does nothing else (it doesn't open tap-to-fix on the preview).
+let tapResumed = false;
 document.addEventListener('pointerdown', (e) => {
-  if (live && !paused && problem === 'needs-tap' && !(e.target as Element).closest('#fix')) {
+  tapResumed = live && !paused && problem === 'needs-tap' && !(e.target as Element).closest('#fix');
+  if (tapResumed) {
     log('app', 'tap anywhere resumed the mic');
     listen();
   }
@@ -296,6 +300,7 @@ sel.addEventListener('change', () => {
   applyStrings(document, s);
   fix = fixer(lang);
   showWords();
+  tapFix.close();
   setCfg({ lang });
   // Switch recognition language straight away if listening.
   if (live && !paused) listen();
@@ -344,6 +349,27 @@ const showWords = bindEditor(
   () => lang,
   () => (fix = fixer(lang)),
   () => s.saved,
+);
+
+// Tap a wrong word in the preview to add a word-list rule for it.
+const tapFix = bindTapFix(
+  {
+    preview: $('preview'),
+    panel: $<HTMLFormElement>('tapfix'),
+    chips: $('tapfix-words'),
+    label: $('tapfix-label'),
+    input: $<HTMLInputElement>('tapfix-write'),
+    cancel: $('tapfix-cancel'),
+    toast: $('tapfix-toast'),
+  },
+  () => lang,
+  () => s,
+  () => {
+    log('app', 'tap-to-fix added a rule');
+    fix = fixer(lang);
+    showWords();
+  },
+  () => tapResumed,
 );
 
 // Diagnostics: copy or share the event log.

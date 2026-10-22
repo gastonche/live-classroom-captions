@@ -141,6 +141,8 @@ test('if the mic stays down, the screen says captions are interrupted; any tap r
   // A tap anywhere on the phone (not only the yellow button) resumes listening.
   await phone.locator('#preview').click();
   await expect(phone.locator('#mic-state')).toHaveText('listening');
+  // That tap only resumes the mic; it doesn't open tap-to-fix.
+  await expect(phone.locator('#tapfix')).toBeHidden();
   await expect(tv.locator('#notice')).toBeHidden({ timeout: 3_000 });
   await say(phone, 'final', 'and after');
   await expect(tv.locator('#stage')).toHaveText('before the network drop and after');

@@ -35,7 +35,21 @@
     <button id="fix" class="btn fix" hidden></button>
     <p id="fix-help" class="muted" hidden></p>
 
-    <div id="preview" class="preview" aria-live="polite"></div>
+    <div class="preview-wrap">
+      <div id="preview" class="preview" aria-live="polite"></div>
+      <p id="tapfix-toast" class="toast" role="status" hidden></p>
+    </div>
+    <p class="muted small hint" data-i18n="tapToFix">Tap a wrong word to fix it.</p>
+    <form id="tapfix" class="tapfix" hidden>
+      <div id="tapfix-words" class="wchips" role="group"></div>
+      <label class="field"><span id="tapfix-label" class="small"></span>
+        <input id="tapfix-write" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+      </label>
+      <div class="row">
+        <button id="tapfix-cancel" type="button" class="btn" data-i18n="cancel">Cancel</button>
+        <button id="tapfix-save" type="submit" class="btn go" data-i18n="fixSave">Save fix</button>
+      </div>
+    </form>
 
     <section id="ended" class="ended" hidden>
       <h2 data-i18n="ended">Session ended</h2>
