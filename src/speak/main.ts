@@ -360,7 +360,7 @@ const tapFix = bindTapFix(
     label: $('tapfix-label'),
     input: $<HTMLInputElement>('tapfix-write'),
     cancel: $('tapfix-cancel'),
-    toast: $('tapfix-toast'),
+    hint: $('tapfix-hint'),
   },
   () => lang,
   () => s,
