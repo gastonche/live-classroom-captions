@@ -1,13 +1,15 @@
 # Tests, size budgets (fail the build when exceeded) and end-to-end checks on every push and PR.
+# WebKit runs on macOS: Playwright's Linux WebKit can't open WebRTC connections between
+# pages, so it can't test the phone-to-screen link (real Safari and macOS WebKit can).
 name: CI
 on:
   push:
   pull_request:
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,14 +21,35 @@ jobs:
         run: npm test
       - name: Type-check, build and size budgets
         run: npm run build
-      - name: Install test browsers
-        run: npx playwright install --with-deps chromium webkit
-      - name: End-to-end (dev server, local signalling)
-        run: npm run e2e
-      - name: End-to-end (production build, service worker)
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end, production build (service worker, offline)
         run: npm run e2e:prod
+
+  e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chromium
+            os: ubuntu-latest
+          - browser: webkit
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install ${{ matrix.browser }}
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: End-to-end (${{ matrix.browser }}, local signalling)
+        run: npx playwright test --project=${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-results
+          name: playwright-results-${{ matrix.browser }}
           path: test-results/

@@ -280,3 +280,12 @@ That keeps the display as the single, always-on point and the phone as a client 
   half on the laptop screen. Fix: convert with the target monitor's scale to logical points.
 - **Card timed out** after 60 s at launch. Now it stays until the first phone pairs, and is available from the menu later.
 - Still unconfirmed: menu-bar actions and global shortcuts (no "[native] action" lines yet, so not tried), the Keynote slide show, mirroring, and click-through by eye.
+
+## 2026-10-22 — Published (user-approved)
+- Public repo: **https://github.com/gastonche/live-classroom-captions**. Site (GitHub Pages via Actions): **https://gastonche.github.io/live-classroom-captions/**.
+- Before publishing, local network details (LAN IPs, the TV's MAC address and device ID, the LAN device inventory) were generalised in NOTES.md, and the VIDAA login formula
+  was replaced by a pointer to pyvidaa. The repo was published as **one fresh commit**: the earlier local history (which contains those details) stays on the
+  local, unpushed branch `local-history`.
+- Live-site smoke test (built-in browser): `/show` registered a room via the public PeerJS server, `/speak?engine=fake` paired and went live, and "grip" rendered as "grep". All pages return 200.
+- `WEB_URL` now defaults to the Pages address; forks override it with `VITE_WEB_URL`. The Mac app was rebuilt for it: `Captions-macOS-arm64.zip` (2.1 MB, Apple Silicon only, unsigned). **Not released yet.**
+- The quick tunnel and preview server are stopped. Phones must re-add the app from the permanent address (the old home-screen icon points at a dead origin).
