@@ -294,5 +294,7 @@ That keeps the display as the single, always-on point and the phone as a client 
 - Chromium e2e (Linux), unit tests, build and size budgets, and prod-build e2e: **pass**.
 - **WebKit e2e fails on GitHub runners, on both Linux and macOS:** the test phone never connects (chip stays "wait"). The same tests pass on a real Mac, and real iPhone Safari works.
   Locally both engines gather only **mDNS-obfuscated host candidates** (`*.local`) with no STUN. The working theory is that WebKit can't resolve them inside CI VMs.
-  `test/e2e/ice-diagnostic.spec.ts` prints the candidates on CI to confirm. Until fixed, the WebKit CI job is **non-blocking**, so run WebKit e2e on a Mac before releases.
+  `test/e2e/ice-diagnostic.spec.ts` printed the candidates on CI: **Chromium 1 (mDNS), WebKit 0**. So the mDNS theory was wrong too.
+  Playwright's WebKit on the runner gathers **no ICE candidates at all** (no usable interface in that sandbox), and STUN/TURN can't help without one.
+  The WebKit CI job stays **non-blocking** (CI conclusion: success). **Run `npx playwright test --project=webkit` on a Mac before releases** (it passes there, 28/28 non-skipped).
 - First diagnosis ("Linux WebKit lacks WebRTC") was wrong: macOS runners fail the same way.
