@@ -1,0 +1,30 @@
+{
+  "name": "Bash and Linux (English)",
+  "lang": "en",
+  "about": "Fixes common mishearings of shell terms. 'heard' is what speech recognition writes; 'write' is what appears on screen. Edit freely.",
+  "rules": [
+    { "heard": ["grip", "grab", "grape", "g rep", "grep"], "write": "grep" },
+    { "heard": ["see h mod", "c h mod", "ch mod", "change mod", "chamod", "tomato", "chmod"], "write": "chmod" },
+    { "heard": ["see h own", "c h own", "ch own", "change own", "chone", "chown"], "write": "chown" },
+    { "heard": ["pseudo", "sue doe", "sue do", "sudu", "sudo"], "write": "sudo" },
+    { "heard": ["pike", "pipe"], "write": "pipe" },
+    { "heard": ["sword", "sort"], "write": "sort" },
+    { "heard": ["l s", "el es", "ell ess", "LS"], "write": "ls" },
+    { "heard": ["c d", "see dee", "CD"], "write": "cd" },
+    { "heard": ["make dir", "make deer", "mk dir", "m k dir", "mkdir"], "write": "mkdir" },
+    { "heard": ["remove dir", "rm dir", "r m dir", "rmdir"], "write": "rmdir" },
+    { "heard": ["r m", "are em"], "write": "rm" },
+    { "heard": ["p w d", "pee double you dee", "PWD"], "write": "pwd" },
+    { "heard": ["s s h", "SSH"], "write": "ssh" },
+    { "heard": ["a w k"], "write": "awk" },
+    { "heard": ["s e d"], "write": "sed" },
+    { "heard": ["v i m", "vin"], "write": "vim" },
+    { "heard": ["bosh", "bash"], "write": "bash" },
+    { "heard": ["a p t", "APT"], "write": "apt" },
+    { "heard": ["standard out", "standard output"], "write": "stdout" },
+    { "heard": ["standard in", "standard input"], "write": "stdin" },
+    { "heard": ["standard error"], "write": "stderr" },
+    { "heard": ["linux"], "write": "Linux" },
+    { "heard": ["ubuntu"], "write": "Ubuntu" }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Bash et Linux (français)",
+  "lang": "fr",
+  "about": "Corrige les erreurs fréquentes de reconnaissance des termes du shell. « heard » est ce que la reconnaissance écrit, « write » ce qui s'affiche. Modifiable.",
+  "rules": [
+    { "heard": ["grèpe", "graipe", "grep", "g rep"], "write": "grep" },
+    { "heard": ["ché mode", "chemod", "c h mode", "ch mode", "chmod"], "write": "chmod" },
+    { "heard": ["ché own", "c h own", "ch own", "chown"], "write": "chown" },
+    { "heard": ["soudeau", "soudo", "sous do", "sudo", "pseudo"], "write": "sudo" },
+    { "heard": ["païpe", "pipe"], "write": "pipe" },
+    { "heard": ["elle esse", "l s", "LS"], "write": "ls" },
+    { "heard": ["c d", "cédé", "CD"], "write": "cd" },
+    { "heard": ["make dir", "mk dir", "m k dir", "mkdir"], "write": "mkdir" },
+    { "heard": ["rm dir", "r m dir", "rmdir"], "write": "rmdir" },
+    { "heard": ["r m", "erre emme"], "write": "rm" },
+    { "heard": ["p w d", "PWD"], "write": "pwd" },
+    { "heard": ["s s h", "esse esse ache", "SSH"], "write": "ssh" },
+    { "heard": ["bache", "bash"], "write": "bash" },
+    { "heard": ["v i m", "vime"], "write": "vim" },
+    { "heard": ["a p t", "APT"], "write": "apt" },
+    { "heard": ["sortie standard"], "write": "stdout" },
+    { "heard": ["entrée standard"], "write": "stdin" },
+    { "heard": ["erreur standard"], "write": "stderr" },
+    { "heard": ["linux"], "write": "Linux" },
+    { "heard": ["ubuntu"], "write": "Ubuntu" }
+  ]
+}

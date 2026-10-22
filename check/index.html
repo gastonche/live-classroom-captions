@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Captions check">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/check/manifest.webmanifest">
+<title>Device check</title>
+<style>
+  html, body { margin: 0; background: #000; color: #fff; font: 18px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { padding: 16px; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .sub { color: #aaa; margin: 0 0 16px; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 6px 8px; border-bottom: 1px solid #222; vertical-align: top; word-break: break-word; }
+  td:first-child { width: 40%; color: #ccc; }
+  .ok { color: #5f5; } .bad { color: #f66; } .warn { color: #fc4; } .wait { color: #888; }
+  button { font: inherit; font-size: 20px; min-height: 52px; padding: 10px 18px; margin: 6px 6px 6px 0; border: 2px solid #fff; background: #111; color: #fff; border-radius: 10px; }
+  button:focus { outline: 4px solid #fc4; }
+  #speech { min-height: 3em; padding: 10px; background: #111; border-radius: 8px; margin: 8px 0; }
+  #status { margin: 12px 0; font-size: 20px; }
+  h2 { font-size: 22px; margin: 24px 0 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Device check</h1>
+  <p class="sub" id="label">Running…</p>
+  <div id="status" class="wait">Running automatic tests…</div>
+  <table><tbody id="results"></tbody></table>
+
+  <h2>Manual tests (iPhone)</h2>
+  <p class="sub">Tap one at a time. Results are sent back automatically.</p>
+  <div>
+    <button id="btn-speech-en">Test speech (English)</button>
+    <button id="btn-speech-fr">Test speech (French)</button>
+    <button id="btn-wake">Test wake lock</button>
+    <button id="btn-vosk">Test Vosk (downloads ~40 MB)</button>
+    <button id="btn-send">Send report again</button>
+  </div>
+  <div id="speech" aria-live="polite"></div>
+</main>
+<script src="/check.js"></script>
+</body>
+</html>

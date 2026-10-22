@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Captions">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../favicon-32.png" sizes="32x32">
+<title>Captions: teacher</title>
+<link rel="stylesheet" href="../src/ui.css">
+</head>
+<body>
+  <main id="join">
+    <h1 data-i18n="enterCode">Enter the code shown on the screen</h1>
+    <input id="code" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Room code">
+    <p id="join-error" class="error" role="alert"></p>
+    <button id="connect" class="btn primary" data-i18n="connect">Connect</button>
+  </main>
+
+  <main id="main" hidden>
+    <div id="a2hs" class="tip" hidden>
+      <p data-i18n="a2hs"></p>
+      <button id="a2hs-ok" class="btn small-btn" data-i18n="dismiss">OK</button>
+    </div>
+    <div class="chips">
+      <span id="chip-mic" class="chip" data-s="off"><span data-i18n="mic">Mic</span>: <span id="mic-state"></span></span>
+      <span id="chip-tv" class="chip" data-s="wait"><span data-i18n="tv">Screen</span> <b id="room"></b>: <span id="tv-state"></span></span>
+      <span id="chip-engine" class="chip" data-s="off"><span data-i18n="engine">Engine</span>: <span id="engine-state"></span></span>
+    </div>
+    <p id="main-error" class="error" role="alert"></p>
+    <button id="fix" class="btn fix" hidden></button>
+    <p id="fix-help" class="muted" hidden></p>
+
+    <div id="preview" class="preview" aria-live="polite"></div>
+
+    <section id="ended" class="ended" hidden>
+      <h2 data-i18n="ended">Session ended</h2>
+      <p id="ended-help" class="muted" data-i18n="endedHelp"></p>
+      <div class="row wrap">
+        <button id="t-download" class="btn" data-i18n="download">Save as .txt</button>
+        <button id="t-share" class="btn" data-i18n="shareTranscript">Share</button>
+      </div>
+      <button id="t-done" class="btn" data-i18n="done">Done</button>
+    </section>
+
+    <button id="start" class="btn primary" data-i18n="start">Start captions</button>
+    <div id="controls" class="row" hidden>
+      <button id="pause" class="btn" data-i18n="pause">Pause</button>
+      <button id="end" class="btn danger" data-i18n="end">End</button>
+    </div>
+
+    <div id="position" class="field" hidden>
+      <span class="muted small" data-i18n="captionsAt">Captions on the computer screen</span>
+      <div class="row seg" role="group">
+        <button id="pos-top" class="btn" data-i18n="top" aria-pressed="false">Top</button>
+        <button id="pos-bottom" class="btn" data-i18n="bottom" aria-pressed="true">Bottom</button>
+      </div>
+    </div>
+
+    <details id="type-box" hidden>
+      <summary data-i18n="typeInstead">Type a caption</summary>
+      <form id="test" class="field">
+        <input id="test-text" type="text" autocomplete="off" enterkeyhint="send" aria-label="Caption text">
+      </form>
+    </details>
+
+    <details>
+      <summary data-i18n="settings">Settings</summary>
+      <label class="setting"><span data-i18n="language">Language</span>
+        <select id="lang"><option value="en">English</option><option value="fr">Français</option></select>
+      </label>
+      <label class="setting"><span data-i18n="textSize">Text size</span> <input id="size" type="range" min="3" max="12" step="0.5"></label>
+      <label class="setting"><span data-i18n="lines">Lines</span> <input id="lines" type="range" min="1" max="5" step="1"></label>
+      <label class="setting"><span data-i18n="edgeMargin">Edge margin</span> <input id="margin" type="range" min="0" max="12" step="1"></label>
+      <label class="setting"><span data-i18n="dodge">Move out of the pointer’s way</span> <input id="dodge" type="checkbox" class="switch"></label>
+    </details>
+
+    <details id="words-box">
+      <summary data-i18n="words">Word list</summary>
+      <p class="muted small" data-i18n="wordsHelp"></p>
+      <textarea id="words" rows="10" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Word list rules"></textarea>
+      <div class="row wrap">
+        <button id="words-save" class="btn" data-i18n="save">Save</button>
+        <button id="words-reset" class="btn" data-i18n="reset">Reset to default</button>
+      </div>
+      <div class="row wrap">
+        <label class="btn file"><span data-i18n="importList">Import</span><input id="words-import" type="file" accept="application/json,.json" hidden></label>
+        <button id="words-export" class="btn" data-i18n="exportList">Export</button>
+      </div>
+      <p id="words-msg" class="muted small" role="status"></p>
+    </details>
+
+    <details id="diag-box">
+      <summary data-i18n="diagnostics">Diagnostics</summary>
+      <p class="muted small" data-i18n="diagHelp"></p>
+      <div class="row wrap">
+        <button id="diag-copy" class="btn" data-i18n="copyDiag">Copy diagnostics</button>
+        <button id="diag-share" class="btn" data-i18n="share">Share</button>
+      </div>
+      <p id="diag-msg" class="muted small" role="status"></p>
+    </details>
+
+    <div class="spacer"></div>
+    <button id="forget" class="link" data-i18n="changeScreen">Use a different screen</button>
+  </main>
+  <script type="module" src="../src/speak/main.ts"></script>
+</body>
+</html>

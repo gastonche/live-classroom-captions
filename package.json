@@ -1,0 +1,33 @@
+{
+  "name": "live-classroom-captions",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Free, open-source live captions from a teacher's phone to a classroom TV.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build && node scripts/size-check.mjs",
+    "preview": "vite preview --host",
+    "test": "vitest run test/unit",
+    "tunnel": "cloudflared tunnel --url http://localhost:5173",
+    "size": "node scripts/size-check.mjs",
+    "e2e": "playwright test",
+    "e2e:prod": "playwright test -c playwright.prod.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@tauri-apps/cli": "2.12.4",
+    "happy-dom": "20.14.6",
+    "peer": "1.0.2",
+    "typescript": "5.9.3",
+    "vite": "6.4.5",
+    "vitest": "3.2.7",
+    "vosk-browser": "0.0.8"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "lean-qr": "2.7.4",
+    "peerjs": "1.5.5"
+  }
+}

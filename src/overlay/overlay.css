@@ -1,0 +1,86 @@
+/* Desktop overlay: a see-through, click-through window covering the projector screen.
+   Only the caption box, the status chip and the room-code card are drawn. */
+:root {
+  --size: 4.5;   /* caption text, % of screen height */
+  --lines: 2;
+  --margin: 5;   /* safe margin, % of screen height */
+  --lh: 1.3;
+}
+html, body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+[hidden] { display: none !important; }
+
+.box {
+  position: fixed;
+  left: 15vw;
+  right: 15vw;
+  bottom: calc(var(--margin) * 1vh);
+  padding: 1.4vh 2.2vh;
+  background: rgba(0, 0, 0, 0.78);
+  border-radius: 1.6vh;
+  color: #fff;
+}
+body[data-position="top"] .box { bottom: auto; top: calc(var(--margin) * 1vh); }
+.stage {
+  height: calc(var(--size) * var(--lh) * var(--lines) * 1vh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  font-size: calc(var(--size) * 1vh);
+  line-height: var(--lh);
+  font-weight: 600;
+}
+.cap { margin: 0; }
+.interim { color: #a3a3a3; }
+
+.chip {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--margin) * 1vh);
+  margin: 0;
+  padding: 0.9vh 2vh;
+  background: rgba(0, 0, 0, 0.78);
+  color: #f4f4f5;
+  border-radius: 999px;
+  font-size: 2.2vh;
+  font-weight: 600;
+  white-space: nowrap;
+}
+body[data-position="top"] .chip { bottom: auto; top: calc(var(--margin) * 1vh); }
+.chip[data-kind="interrupted"] { background: rgba(120, 72, 0, 0.92); }
+
+/* Room-code card: a corner, on the edge away from the captions. */
+.card {
+  position: fixed;
+  right: calc(var(--margin) * 1vh);
+  top: calc(var(--margin) * 1vh);
+  display: flex;
+  gap: 1.6vh;
+  align-items: center;
+  padding: 1.6vh;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  border-radius: 1.6vh;
+  max-width: 34vw;
+}
+body[data-position="top"] .card { top: auto; bottom: calc(var(--margin) * 1vh); }
+.card p { margin: 0; }
+.card-label { font-size: 1.6vh; color: #bbb; }
+.card-code { font-size: 6vh; font-weight: 800; letter-spacing: 0.1em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.card-hint { font-size: 1.6vh; color: #ccc; max-width: 22vh; }
+.qr-box { background: #fff; padding: 0.8vh; border-radius: 0.8vh; line-height: 0; }
+#qr { width: 13vh; height: 13vh; image-rendering: pixelated; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .box, .chip { transition: top 0.25s ease, bottom 0.25s ease; }
+}

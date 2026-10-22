@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Captions overlay</title>
+<link rel="stylesheet" href="../src/overlay/overlay.css">
+</head>
+<body data-position="bottom">
+  <section id="box" class="box" aria-live="polite" hidden>
+    <div id="stage" class="stage"></div>
+  </section>
+  <p id="chip" class="chip" role="status" hidden></p>
+  <aside id="card" class="card" hidden>
+    <div class="card-text">
+      <p class="card-label" data-i18n="roomCode">Room code</p>
+      <p id="code" class="card-code">····</p>
+      <p id="card-hint" class="card-hint"></p>
+    </div>
+    <div class="qr-box"><canvas id="qr" width="1" height="1" aria-hidden="true"></canvas></div>
+  </aside>
+  <script type="module" src="../src/overlay/main.ts"></script>
+</body>
+</html>
