@@ -332,6 +332,6 @@ Real problem: Safari writes "bully" when the teacher says "boolean". Web Speech 
 ### Test results (2026-10-22, this Mac)
 - `npm test`: **197 passed** (adds `programming.test.ts`: 48 EN + 19 FR key mappings, 36 EN + 22 FR ordinary sentences that must stay unchanged; `words.test.ts`: merge, migration, tap-to-fix rules, word picking).
 - `npm run build`: budgets ok (/speak 17.7 KB / 40 KB).
-- `npm run e2e`: Chromium **34 passed**; WebKit **32 passed, 2 skipped** (the Chromium-only clipboard test and one other, as before). New `tapfix.spec.ts`: bully → boolean end to end (rule in editor, survives reload), two-word selection, Cancel while captions flow, French strings.
+- `npm run e2e`: Chromium **34 passed**; WebKit **32 passed, 2 skipped** (clipboard and network-change tests are Chromium-only, as before). New `tapfix.spec.ts`: bully → boolean end to end (rule in editor, survives reload), two-word selection, Cancel while captions flow, French strings.
 - `npm run e2e:prod`: **5 passed**.
 - Not tested yet: a real iPhone (tap accuracy on 18 px text, keyboard staying up while tapping word buttons).
