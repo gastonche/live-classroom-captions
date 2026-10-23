@@ -34,6 +34,10 @@ export class RoomHost {
   private teacherSeen = 0;
   private viewers = new Set<DataConnection>();
   private lastState = '';
+  /** The computer itself is the teacher (desktop app with its own microphone). */
+  private local = false;
+  private localSeq = 0;
+  private localId = 0;
 
   constructor(
     private view: CaptionView,
@@ -55,6 +59,40 @@ export class RoomHost {
       if (this.peer.destroyed) this.open();
       else if (this.peer.disconnected) this.peer.reconnect();
     });
+  }
+
+  /** Desktop mode: captions come from this computer's microphone; phones can only watch. */
+  setLocal(on: boolean): void {
+    this.local = on;
+    this.set({ teacher: this.teacherPresent() });
+  }
+
+  localLive(on: boolean): void {
+    this.broadcast({ t: 'live', on });
+    this.set(on ? { live: true, paused: false } : { live: false, paused: false, micOk: true });
+  }
+
+  localPause(on: boolean): void {
+    this.broadcast({ t: 'pause', on });
+    this.set({ paused: on });
+  }
+
+  localMic(ok: boolean): void {
+    if (ok === this.state.micOk) return;
+    this.broadcast({ t: 'mic', ok });
+    this.set({ micOk: ok });
+  }
+
+  /** A caption from this computer's own recognition (already through the word lists). */
+  localCaption(t: 'i' | 'f', text: string): void {
+    const m = { t, id: this.localId, text, seq: ++this.localSeq, sid: 'local' } as const;
+    if (t === 'f') {
+      this.view.final(text);
+      this.localId++;
+    } else {
+      this.view.interim(text);
+    }
+    this.broadcast(m);
   }
 
   /** Sends a message to the teacher's phone, e.g. a position change made on the computer. */
@@ -128,7 +166,7 @@ export class RoomHost {
   /** Teacher trust: a remembered token always wins; otherwise only an empty seat can be taken. */
   private hello(conn: DataConnection, token?: string): 'speak' | null {
     const trusted = safeGet('lcc.token');
-    if (!(token && token === trusted) && this.teacherPresent()) {
+    if (this.local || (!(token && token === trusted) && this.teacherPresent())) {
       send(conn, { t: 'reject', reason: 'busy' });
       setTimeout(() => conn.close(), 500);
       return null;
@@ -188,6 +226,7 @@ export class RoomHost {
   }
 
   private teacherPresent(): boolean {
+    if (this.local) return true;
     return !!this.teacher && Date.now() - this.teacherSeen < SILENCE_MS;
   }
 

@@ -370,3 +370,23 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
   segment every ~0.5 s. That would mean one model and no CC-BY-SA dependency. To test.
 - Fixed in passing: the programming pack's `bully and → boolean` deleted a real "and". Removed, with a regression test.
 - **Decision waits on real recordings** with the classroom mic (bench/README.md).
+
+## v2 desktop pipeline, first build (2026-10-23)
+- **Engine** `src-tauri/src/asr.rs` uses the official `sherpa-onnx` crate 1.13.8 (Apache-2.0; prebuilt static libs downloaded from sherpa-onnx's GitHub releases at build time) and `cpal` 0.18 for capture.
+  - Capture thread: default or chosen mic, downmix, sherpa's LinearResampler to 16 kHz. **Never restarted during a lesson.** If the device fails or is unplugged it retries every 2 s.
+  - Worker thread: 60 s history ring with absolute sample positions; every sample goes through Silero VAD (0.5 threshold, 0.6 s hangover, 15 s max segment).
+    While speech is detected, the growing sentence is re-decoded every ≥0.7 s for grey text. The interval adapts to 2.5× the last decode time on slow machines.
+    When VAD closes a segment, exactly that audio plus 300 ms pre-roll is decoded once for the final. Stopping flushes the sentence in progress.
+  - Stats every 2 s: captured vs processed samples, backlog, segments, RTF, mic level, device.
+  - **Parakeet v3 detects English or French itself**, so the app's language setting only picks word lists and UI strings.
+  - Test sources: `CAPTIONS_TEST_WAV` (real-time pace), `filefast:` in tests. `CAPTIONS_AUTOSTART` starts a lesson after launch.
+- **Desktop mode in the page:** `RoomHost.setLocal(true)` makes the computer the teacher (phones are refused as teachers and can only watch via `/view`).
+  The menu bar has Start (⌃⌥⌘S), Pause/Resume (⌃⌥⌘P), End and save transcript (Documents/Captions), Microphone submenu, Language (EN/FR), student QR (`/view?room=CODE`), position, display, move out of the way, hide, login, quit.
+  A mic down for over 5 s while live shows "Captions interrupted: microphone problem." on screen and to students (the wording is now neutral, no phone).
+- `NSMicrophoneUsageDescription` in `src-tauri/Info.plist`.
+- Tests: Rust unit (history ring, downmix) plus an **ignored end-to-end engine test** on a recording (all key terms right).
+  Web: 198 unit, **68 e2e** (incl. 8 new desktop-mode overlay tests with injected engine events). All pass.
+- **In the real app** with a recording as the mic: start → listening → 2 finals (45 + 37 words of the 85-word script) → idle. Text quality was checked in the Rust test.
+- App bundle **21.9 MB** (speech engine statically linked). Models are separate.
+- **Not done yet:** (1) **first-run model download**: models are found via `CAPTIONS_MODELS`, the app data folder, or (dev only) `bench/models`, so on another computer they're missing.
+  (2) Real-mic test with the teacher's voice. (3) 3-hour soak test, plus mic unplug and replug on real hardware. (4) Windows and Linux builds.

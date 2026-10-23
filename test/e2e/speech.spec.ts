@@ -137,7 +137,7 @@ test('if the mic stays down, the screen says captions are interrupted; any tap r
   const { tv, phone } = await liveSession(browser);
   await say(phone, 'final', 'before the network drop');
   await phone.evaluate(() => (window as any).__fakeSpeech.fail('needs-tap'));
-  await expect(tv.locator('#notice')).toHaveText('Captions interrupted. Teacher: check your phone.', { timeout: 8_000 });
+  await expect(tv.locator('#notice')).toHaveText('Captions interrupted: microphone problem.', { timeout: 8_000 });
   // A tap anywhere on the phone (not only the yellow button) resumes listening.
   await phone.locator('#preview').click();
   await expect(phone.locator('#mic-state')).toHaveText('listening');
@@ -156,5 +156,5 @@ test('students see the interruption notice too', async ({ browser }) => {
   await say(phone, 'final', 'hello');
   await expect(student.locator('#transcript')).toHaveText('hello', { timeout: 15_000 });
   await phone.evaluate(() => (window as any).__fakeSpeech.fail('needs-tap'));
-  await expect(student.locator('#state')).toHaveText('Captions interrupted. Teacher: check your phone.', { timeout: 8_000 });
+  await expect(student.locator('#state')).toHaveText('Captions interrupted: microphone problem.', { timeout: 8_000 });
 });

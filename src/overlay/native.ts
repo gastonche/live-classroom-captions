@@ -20,8 +20,43 @@ export type MenuState = {
   autostart: boolean;
   monitor: string;
   monitors: string[];
+  live: boolean;
+  paused: boolean;
+  lang: 'en' | 'fr';
+  mic: string;
+  mics: string[];
   labels: Record<string, string>;
 };
+
+export type AsrEvent =
+  | { kind: 'interim'; text: string }
+  | { kind: 'final'; text: string }
+  | { kind: 'state'; state: 'listening' | 'error' | 'idle'; detail: string }
+  | { kind: 'stats'; captured: number; processed: number; backlog: number; segments: number; rtf: number; level: number; device: string };
+
+/** Starts the computer's microphone and speech recognition (empty mic = system default). */
+export async function asrStart(mic: string): Promise<void> {
+  if (inApp) await invoke('asr_start', { mic });
+}
+
+export async function asrStop(): Promise<void> {
+  if (inApp) await invoke('asr_stop');
+}
+
+export async function asrDevices(): Promise<string[]> {
+  return inApp ? invoke<string[]>('asr_devices') : [];
+}
+
+/** Writes the transcript to Documents/Captions; returns the path. */
+export async function saveTranscript(name: string, text: string): Promise<string> {
+  return inApp ? invoke<string>('save_transcript', { name, text }) : '';
+}
+
+/** Recognition events from the app. Tests inject the same events through window.__asr. */
+export function onAsr(fn: (e: AsrEvent) => void): void {
+  if (inApp) listen<AsrEvent>('asr', (e) => fn(e.payload));
+  (window as any).__asr = fn;
+}
 
 /** Cover the chosen monitor (by name; empty means "the projector", i.e. not the built-in one). Returns its name. */
 export async function place(monitor: string): Promise<string> {

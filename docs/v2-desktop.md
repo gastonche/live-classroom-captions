@@ -1,6 +1,6 @@
 # v2: desktop captions with local speech recognition
 
-Status: spec agreed in direction (2026-10-23), nothing built yet. Supersedes the phone-as-microphone
+Status (2026-10-23): pipeline built in the macOS app (capture, voice detection, Parakeet, word lists, student QR, transcript). Not yet tested with a real microphone. First-run model download still to do. See NOTES.md. Supersedes the phone-as-microphone
 design for classroom use. Sign language is **out of scope for now**.
 
 ## Goal

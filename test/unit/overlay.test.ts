@@ -19,10 +19,11 @@ describe('overlay decide()', () => {
     expect(decide(st({ micOk: false }), { hidden: false, showCode: false }).chip).toBe('interrupted');
     expect(decide(st({ paused: true }), { hidden: false, showCode: false }).box).toBe(false);
   });
-  it('shows the room-code card only when asked and nobody is paired', () => {
-    expect(decide(st({ teacher: false, live: false }), { hidden: false, showCode: true }).card).toBe(true);
-    expect(decide(st({ teacher: true, live: false }), { hidden: false, showCode: true }).card).toBe(false);
-    expect(decide(st({ teacher: false, ready: false }), { hidden: false, showCode: true }).card).toBe(false);
+  it('shows the student QR card only when asked for, once the room is ready', () => {
+    expect(decide(st({ live: false }), { hidden: false, showCode: true }).card).toBe(true);
+    expect(decide(st({ live: true }), { hidden: false, showCode: true }).card).toBe(true);
+    expect(decide(st({ live: true }), { hidden: false, showCode: false }).card).toBe(false);
+    expect(decide(st({ ready: false }), { hidden: false, showCode: true }).card).toBe(false);
   });
   it('hide wins over everything', () => {
     expect(decide(st({ micOk: false }), { hidden: true, showCode: true })).toEqual({ box: false, chip: null, card: false });

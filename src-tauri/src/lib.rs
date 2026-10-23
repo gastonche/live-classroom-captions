@@ -2,7 +2,10 @@
 // this file makes the window an overlay (see-through, click-through, above everything,
 // on every Space and full-screen app), puts it on the projector, and runs the menu-bar
 // menu and global shortcuts. Menu and shortcut actions go to the page as "action" events.
+mod asr;
+
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde::Deserialize;
@@ -26,14 +29,83 @@ struct MenuState {
     autostart: bool,
     monitor: String,
     monitors: Vec<String>,
+    live: bool,
+    paused: bool,
+    lang: String,
+    mic: String,
+    mics: Vec<String>,
     labels: HashMap<String, String>,
 }
 
 struct Tray(Mutex<Option<TrayIcon<Wry>>>);
+struct Asr(Mutex<Option<asr::Session>>);
 
-fn shortcuts() -> [(Shortcut, &'static str); 3] {
+/// Where the speech models live: $CAPTIONS_MODELS, else the app's data folder, else (during
+/// development) the benchmark's download folder.
+fn models_dir(app: &AppHandle) -> PathBuf {
+    if let Ok(d) = std::env::var("CAPTIONS_MODELS") {
+        return d.into();
+    }
+    if let Ok(d) = app.path().app_data_dir() {
+        let m = d.join("models");
+        if m.join("silero_vad_v5.onnx").exists() {
+            return m;
+        }
+    }
+    PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../bench/models"))
+}
+
+#[tauri::command]
+fn asr_devices() -> Vec<String> {
+    asr::input_devices()
+}
+
+/// Starts listening on `mic` (empty = system default). $CAPTIONS_TEST_WAV replaces the mic
+/// with a 16 kHz mono WAV played at real-time pace, for testing without speaking.
+#[tauri::command]
+fn asr_start(app: AppHandle, mic: String) -> Result<(), String> {
+    let source = std::env::var("CAPTIONS_TEST_WAV").map(|p| format!("file:{p}")).unwrap_or(mic);
+    // Half the cores, 1 to 4: leaves room for the lesson's own apps on modest machines.
+    let threads = std::thread::available_parallelism().map(|n| (n.get() / 2).clamp(1, 4) as i32).unwrap_or(2);
+    let models = asr::Models { dir: models_dir(&app), threads };
+    eprintln!("[native] asr start: source={source:?} models={} threads={threads}", models.dir.display());
+    let emitter = app.clone();
+    let session = asr::start(models, source, move |ev| {
+        if let asr::AsrEvent::Final { text } = &ev {
+            eprintln!("[native] final: {} words", text.split_whitespace().count());
+        }
+        let _ = emitter.emit_to(WINDOW, "asr", ev);
+    })?;
+    if let Some(old) = app.state::<Asr>().0.lock().unwrap().replace(session) {
+        old.stop();
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn asr_stop(app: AppHandle) {
+    if let Some(s) = app.state::<Asr>().0.lock().unwrap().take() {
+        s.stop();
+    }
+}
+
+/// Saves a transcript to Documents/Captions and returns its path.
+#[tauri::command]
+fn save_transcript(app: AppHandle, name: String, text: String) -> Result<String, String> {
+    let dir = app.path().document_dir().map_err(|e| e.to_string())?.join("Captions");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let safe: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || "-_.".contains(c) { c } else { '_' }).collect();
+    let path = dir.join(if safe.ends_with(".txt") { safe } else { format!("{safe}.txt") });
+    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    eprintln!("[native] transcript saved to {}", path.display());
+    Ok(path.to_string_lossy().into_owned())
+}
+
+fn shortcuts() -> [(Shortcut, &'static str); 5] {
     let m = Modifiers::CONTROL | Modifiers::ALT | Modifiers::SUPER;
     [
+        (Shortcut::new(Some(m), Code::KeyS), "start"),
+        (Shortcut::new(Some(m), Code::KeyP), "pause"),
         (Shortcut::new(Some(m), Code::KeyC), "toggle-hide"),
         (Shortcut::new(Some(m), Code::ArrowUp), "pos-top"),
         (Shortcut::new(Some(m), Code::ArrowDown), "pos-bottom"),
@@ -177,6 +249,12 @@ fn set_menu(app: AppHandle, state: MenuState) {
 fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
     let l = |k: &str| s.labels.get(k).cloned().unwrap_or_else(|| k.to_string());
     let status = MenuItem::with_id(app, "status", &s.status, false, None::<&str>)?;
+    let sep = || PredefinedMenuItem::separator(app);
+
+    // The lesson: one obvious action at a time.
+    let start = MenuItem::with_id(app, "start", l("start"), !s.live, Some("Ctrl+Alt+Cmd+S"))?;
+    let pause = MenuItem::with_id(app, "pause", if s.paused { l("resume") } else { l("pause") }, s.live, Some("Ctrl+Alt+Cmd+P"))?;
+    let end = MenuItem::with_id(app, "end", l("end"), s.live, None::<&str>)?;
     let show_code = MenuItem::with_id(app, "show-code", format!("{} ({})", l("showCode"), s.code), true, None::<&str>)?;
 
     let top = CheckMenuItem::with_id(app, "pos-top", l("top"), true, s.position == "top", Some("Ctrl+Alt+Cmd+Up"))?;
@@ -184,11 +262,20 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
     let position = Submenu::with_items(app, l("position"), true, &[&top, &bottom])?;
 
     let auto = CheckMenuItem::with_id(app, "monitor:", l("projector"), true, s.monitor.is_empty(), None::<&str>)?;
-    let display = Submenu::with_items(app, l("display"), true, &[&auto, &PredefinedMenuItem::separator(app)?])?;
+    let display = Submenu::with_items(app, l("display"), true, &[&auto, &sep()?])?;
     for name in &s.monitors {
-        let it = CheckMenuItem::with_id(app, format!("monitor:{name}"), name, true, &s.monitor == name, None::<&str>)?;
-        display.append(&it)?;
+        display.append(&CheckMenuItem::with_id(app, format!("monitor:{name}"), name, true, &s.monitor == name, None::<&str>)?)?;
     }
+
+    let mic_default = CheckMenuItem::with_id(app, "mic:", l("micDefault"), true, s.mic.is_empty(), None::<&str>)?;
+    let mic = Submenu::with_items(app, l("mic"), true, &[&mic_default, &sep()?])?;
+    for name in &s.mics {
+        mic.append(&CheckMenuItem::with_id(app, format!("mic:{name}"), name, true, &s.mic == name, None::<&str>)?)?;
+    }
+
+    let en = CheckMenuItem::with_id(app, "lang:en", "English", true, s.lang == "en", None::<&str>)?;
+    let fr = CheckMenuItem::with_id(app, "lang:fr", "Français", true, s.lang == "fr", None::<&str>)?;
+    let language = Submenu::with_items(app, l("language"), true, &[&en, &fr])?;
 
     let dodge = CheckMenuItem::with_id(app, "toggle-dodge", l("dodge"), true, s.dodge, None::<&str>)?;
     let hide = CheckMenuItem::with_id(app, "toggle-hide", l("hide"), true, s.hidden, Some("Ctrl+Alt+Cmd+C"))?;
@@ -199,13 +286,19 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
         app,
         &[
             &status,
-            &PredefinedMenuItem::separator(app)?,
+            &sep()?,
+            &start,
+            &pause,
+            &end,
+            &sep()?,
             &show_code,
             &position,
             &display,
+            &mic,
+            &language,
             &dodge,
             &hide,
-            &PredefinedMenuItem::separator(app)?,
+            &sep()?,
             &login,
             &quit,
         ],
@@ -323,6 +416,9 @@ fn observe_desktops(w: WebviewWindow) {
 fn send_action(app: &AppHandle, id: &str) {
     eprintln!("[native] action {id}");
     if id == "quit" {
+        if let Some(s) = app.state::<Asr>().0.lock().unwrap().take() {
+            s.stop();
+        }
         app.exit(0);
         return;
     }
@@ -347,7 +443,8 @@ pub fn run() {
         )
         .on_page_load(|w, p| eprintln!("[native] page {:?} {} ({})", p.event(), p.url(), w.label()))
         .manage(Tray(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![monitors, place, cursor, reassert, autostart, set_menu, log])
+        .manage(Asr(Mutex::new(None)))
+        .invoke_handler(tauri::generate_handler![monitors, place, cursor, reassert, autostart, set_menu, log, asr_devices, asr_start, asr_stop, save_transcript])
         .setup(|app| {
             // A menu-bar app: no Dock icon, never steals focus from the lesson.
             #[cfg(target_os = "macos")]
@@ -368,7 +465,7 @@ pub fn run() {
             }
 
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
-            let initial = build_menu(app.handle(), &MenuState { status: "Captions".into(), position: "bottom".into(), ..Default::default() })?;
+            let initial = build_menu(app.handle(), &MenuState { status: "Captions".into(), position: "bottom".into(), lang: "en".into(), ..Default::default() })?;
             let tray = TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .icon_as_template(true)
@@ -378,6 +475,15 @@ pub fn run() {
                 .on_menu_event(|app, ev| send_action(app, ev.id().as_ref()))
                 .build(app)?;
             *app.state::<Tray>().0.lock().unwrap() = Some(tray);
+
+            // Tests and demos: start the lesson by itself once the page has loaded.
+            if std::env::var("CAPTIONS_AUTOSTART").is_ok() {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(6));
+                    send_action(&handle, "start");
+                });
+            }
             Ok(())
         })
         .run(tauri::generate_context!())

@@ -19,7 +19,7 @@ export type View = {
  */
 export function decide(st: HostState, opts: { hidden: boolean; showCode: boolean }): View {
   if (opts.hidden) return { box: false, chip: null, card: false };
-  const card = opts.showCode && !st.teacher && st.ready;
+  const card = opts.showCode && st.ready;
   if (!st.live) return { box: false, chip: null, card };
   const chip: Chip = !st.teacher ? 'waiting' : st.paused ? 'paused' : !st.micOk ? 'interrupted' : null;
   return { box: !chip, chip, card };
