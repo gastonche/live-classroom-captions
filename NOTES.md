@@ -437,3 +437,8 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
   - the status now says captions are ready and only student phones are unavailable.
   Captions themselves never needed the network.
 - CI: a non-blocking Linux check runs the real app under Xvfb and expects "webrtc available" and "ready=true". **Not yet confirmed on the user's laptop.**
+- **CI Linux check result (v0.2.1): the WebRTC fix does NOT work.** The log shows "WebKitGTK: WebRTC enabled", then "webrtc NOT available", then `browser-incompatible` in a loop.
+  Ubuntu 22.04's WebKitGTK (which the AppImage bundles) is **built without WebRTC**, so the setting has nothing to switch on.
+  The release notes were corrected the same hour: Linux student phones are a known limit. Captions on screen work.
+  **Real fix needed:** a student transport that doesn't need WebRTC in the host app, either the app serving `/view` on the school Wi-Fi itself (LAN; no internet)
+  or an encrypted relay over WebSocket (internet; works through Wi-Fi client isolation).
