@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{TrayIcon, TrayIconBuilder};
@@ -21,7 +21,7 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut,
 const WINDOW: &str = "overlay";
 
 /// What the page tells us to show in the menu-bar menu (labels come from the page's EN/FR strings).
-#[derive(Deserialize, Default, Clone)]
+#[derive(Deserialize, Serialize, Default, Clone)]
 struct MenuState {
     status: String,
     code: String,
@@ -41,6 +41,10 @@ struct MenuState {
 }
 
 struct Tray(Mutex<Option<TrayIcon<Wry>>>);
+/// The menu's shape (everything but the status line) and its status item. Rebuilding a tray
+/// menu makes it flicker or close (badly on Linux), so it's only rebuilt when its shape
+/// changes; status text (download progress, room state) is updated in place.
+struct MenuCache(Mutex<(String, Option<MenuItem<Wry>>)>);
 struct Asr(Mutex<Option<asr::Session>>);
 
 /// Where the speech models live: $CAPTIONS_MODELS, else the app's data folder (where the
@@ -294,14 +298,28 @@ fn autostart(app: AppHandle, on: bool) -> bool {
 
 #[tauri::command]
 fn set_menu(app: AppHandle, state: MenuState) {
-    let Ok(menu) = build_menu(&app, &state) else { return };
-    if let Some(tray) = app.state::<Tray>().0.lock().unwrap().as_ref() {
-        let _ = tray.set_menu(Some(menu));
-        let _ = tray.set_tooltip(Some(&state.status));
+    let shape = serde_json::to_string(&MenuState { status: String::new(), ..state.clone() }).unwrap_or_default();
+    let cache = app.state::<MenuCache>();
+    let mut cached = cache.0.lock().unwrap();
+    let tray = app.state::<Tray>();
+    let tray = tray.0.lock().unwrap();
+    if let Some(t) = tray.as_ref() {
+        let _ = t.set_tooltip(Some(&state.status));
     }
+    if cached.0 == shape {
+        if let Some(item) = cached.1.as_ref() {
+            let _ = item.set_text(&state.status);
+        }
+        return;
+    }
+    let Ok((menu, status)) = build_menu(&app, &state) else { return };
+    if let Some(t) = tray.as_ref() {
+        let _ = t.set_menu(Some(menu));
+    }
+    *cached = (shape, Some(status));
 }
 
-fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
+fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<(Menu<Wry>, MenuItem<Wry>)> {
     let l = |k: &str| s.labels.get(k).cloned().unwrap_or_else(|| k.to_string());
     let status = MenuItem::with_id(app, "status", &s.status, false, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(app);
@@ -369,7 +387,7 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
     if let Some(item) = setup {
         menu.insert(&item, 1)?;
     }
-    Ok(menu)
+    Ok((menu, status))
 }
 
 #[cfg(target_os = "macos")]
@@ -510,6 +528,7 @@ pub fn run() {
         )
         .on_page_load(|w, p| eprintln!("[native] page {:?} {} ({})", p.event(), p.url(), w.label()))
         .manage(Tray(Mutex::new(None)))
+        .manage(MenuCache(Mutex::new((String::new(), None))))
         .manage(Asr(Mutex::new(None)))
         .manage(Install(Arc::new(AtomicBool::new(false)), Mutex::new(false)))
         .invoke_handler(tauri::generate_handler![monitors, place, cursor, reassert, autostart, set_menu, log, asr_devices, asr_start, asr_stop, save_transcript, models_status, models_install, models_cancel])
@@ -520,6 +539,20 @@ pub fn run() {
 
             let window = app.get_webview_window(WINDOW).expect("overlay window");
             let _ = window.set_ignore_cursor_events(true);
+
+            // WebKitGTK ships with WebRTC switched off; student phones connect over WebRTC.
+            // Switch it on, then reload once so the page sees it.
+            #[cfg(target_os = "linux")]
+            let _ = window.with_webview(|wv| {
+                use webkit2gtk::{SettingsExt, WebViewExt};
+                let view = wv.inner();
+                if let Some(settings) = WebViewExt::settings(&view) {
+                    settings.set_enable_webrtc(true);
+                    settings.set_enable_media_stream(true);
+                    eprintln!("[native] WebKitGTK: WebRTC enabled");
+                }
+                view.reload();
+            });
             #[cfg(target_os = "macos")]
             {
                 into_panel(&window);
@@ -538,7 +571,7 @@ pub fn run() {
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
             #[cfg(not(target_os = "macos"))]
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))?;
-            let initial = build_menu(app.handle(), &MenuState { status: "Captions".into(), position: "bottom".into(), lang: "en".into(), ..Default::default() })?;
+            let (initial, _) = build_menu(app.handle(), &MenuState { status: "Captions".into(), position: "bottom".into(), lang: "en".into(), ..Default::default() })?;
             let tray = TrayIconBuilder::with_id("main")
                 .icon(icon)
                 .icon_as_template(true)

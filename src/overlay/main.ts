@@ -60,6 +60,9 @@ let micName = '';
 let micDownSince = 0;
 let ending: ReturnType<typeof setTimeout> | undefined;
 let notice = ''; // one-off status line in the menu (saved transcript, missing models)
+// The web engine can't do WebRTC (seen on Linux before it's switched on): no student phones.
+let noWebrtc = false;
+let menuProgress = ''; // download progress for the menu, in 5% steps (no flicker)
 // Speech models: installed, missing (first run), or downloading.
 let models: 'ready' | 'missing' | 'installing' = 'ready';
 let modelsMb = 467;
@@ -211,6 +214,8 @@ function onModels(p: native.ModelsProgress): void {
     models = 'installing';
     const pct = Math.floor((100 * p.done) / Math.max(p.total, 1));
     setup(fill(s.setupDownloading, { pct: String(pct), done: mb(p.done), total: mb(p.total) }), p.done / p.total);
+    const step = String(pct - (pct % 5));
+    menuProgress = fill(s.setupDownloading, { pct: step, done: mb((p.total * Number(step)) / 100), total: mb(p.total) });
   } else if (p.stage === 'unpack') {
     setup(s.setupUnpacking, 1);
   } else if (p.stage === 'verify') {
@@ -344,12 +349,14 @@ function pushMenu(): void {
     : models === 'missing'
       ? s.statusSetup
       : models === 'installing'
-        ? $('setup-text').textContent || s.statusSetup
+        ? menuProgress || s.statusSetup
         : !st.ready
-      ? st.net === 'offline'
-        ? s.statusOffline
-        : s.statusConnecting
-      : fill(st.live ? (st.paused ? s.statusPausedLocal : s.statusListening) : s.statusReady, {
+          ? noWebrtc
+            ? s.statusNoWebrtc
+            : st.net === 'offline'
+              ? s.statusNoRoom
+              : s.statusConnecting
+          : fill(st.live ? (st.paused ? s.statusPausedLocal : s.statusListening) : s.statusReady, {
           code: st.code,
           mic: micName || set.mic || s.menuMicDefault,
         });
@@ -436,6 +443,13 @@ function boot(): void {
   applyStrings(document, s);
   style();
   host.setLocal(true);
+  noWebrtc = typeof RTCPeerConnection === 'undefined';
+  native.log(`webrtc ${noWebrtc ? 'NOT available' : 'available'}`);
+  host.onError = (type) => {
+    native.log('room error ' + type);
+    if (type === 'browser-incompatible') noWebrtc = true;
+    render();
+  };
   host.start();
   native.onAction(action);
   native.onAsr(onAsr);

@@ -424,3 +424,16 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
 - CI bug fixed along the way: sherpa-onnx-sys caches its downloaded native library in `target/sherpa-onnx-prebuilt/` and skips the download if the folder exists.
   Swatinem/rust-cache restored the folder empty, so the build hit "could not find native static library sherpa-onnx-c-api".
   `cargo clean -p` alone didn't help (wrong first fix). Removing that folder before the build fixed it.
+
+## v0.2.1 (2026-10-23): fixes from the first Linux test
+- User (Linux): (1) **the CC menu flickers during the download**. (2) **After a while it shows "Offline, retrying" although the laptop is online.**
+- (1) Every status change (download % about 4×/s) **rebuilt the whole tray menu**, which redraws or closes it on Linux.
+  Now the menu is rebuilt only when its shape changes, the status line is updated in place (`MenuItem::set_text`), and the menu's download % moves in 5% steps.
+- (2) Likely cause: **WebKitGTK ships with WebRTC disabled** (`enable-webrtc` defaults to false), so PeerJS can't start (`browser-incompatible`) and the room retries forever.
+  The status said "Offline", which read as the whole app. Fixes:
+  - switch on WebRTC and media streams in WebKitGTK at startup, then reload once;
+  - .deb depends on GStreamer base/good/bad plus nice (WebKitGTK's WebRTC backend), and the AppImage bundles the media framework;
+  - the page logs `webrtc available/NOT available` and `room error <type>`;
+  - the status now says captions are ready and only student phones are unavailable.
+  Captions themselves never needed the network.
+- CI: a non-blocking Linux check runs the real app under Xvfb and expects "webrtc available" and "ready=true". **Not yet confirmed on the user's laptop.**

@@ -113,6 +113,8 @@ const en = {
   statusListening: 'Room {code}: live, listening ({mic})',
   statusPausedLocal: 'Room {code}: paused',
   statusReady: 'Room {code}: ready. Choose Start captions.',
+  statusNoRoom: 'Ready: choose Start captions. (Student phones can’t connect right now.)',
+  statusNoWebrtc: 'Ready: choose Start captions. (Student phones aren’t supported on this computer.)',
   statusSaved: 'Transcript saved: {path}',
   modelsMissing: 'Speech models missing: {detail}',
   // /view
@@ -233,6 +235,8 @@ const fr: Strings = {
   statusListening: 'Salle {code} : en direct, écoute ({mic})',
   statusPausedLocal: 'Salle {code} : en pause',
   statusReady: 'Salle {code} : prête. Choisissez Démarrer les sous-titres.',
+  statusNoRoom: 'Prêt : choisissez Démarrer les sous-titres. (Les téléphones des élèves ne peuvent pas se connecter pour l’instant.)',
+  statusNoWebrtc: 'Prêt : choisissez Démarrer les sous-titres. (Téléphones des élèves non pris en charge sur cet ordinateur.)',
   statusSaved: 'Transcription enregistrée : {path}',
   modelsMissing: 'Modèles de reconnaissance manquants : {detail}',
   viewTitle: 'Suivre les sous-titres',

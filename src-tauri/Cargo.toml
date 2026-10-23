@@ -1,6 +1,6 @@
 [package]
 name = "captions-overlay"
-version = "0.2.0"
+version = "0.2.1"
 description = "Live Classroom Captions: caption overlay for the projector computer"
 license = "MIT"
 edition = "2021"
@@ -30,6 +30,10 @@ objc2 = "0.6"
 objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSGraphics", "NSScreen", "NSWorkspace", "NSPanel"] }
 objc2-foundation = { version = "0.3", features = ["NSString", "NSDictionary", "NSValue", "NSArray", "NSNotification", "NSOperation", "block2"] }
 block2 = "0.6"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Same version and features as Tauri's own (wry): used to switch WebRTC on in WebKitGTK.
+webkit2gtk = { version = "2.0.2", features = ["v2_38"] }
 
 [profile.release]
 strip = true

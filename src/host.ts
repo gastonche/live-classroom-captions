@@ -36,6 +36,8 @@ export class RoomHost {
   private lastState = '';
   /** The computer itself is the teacher (desktop app with its own microphone). */
   private local = false;
+  /** Room problems (e.g. "browser-incompatible" when the web engine lacks WebRTC). */
+  onError: (type: string) => void = () => {};
   private localSeq = 0;
   private localId = 0;
 
@@ -125,6 +127,7 @@ export class RoomHost {
     });
     peer.on('error', (e) => {
       log('room', 'error ' + e.type);
+      this.onError(e.type);
       if (e.type === 'unavailable-id') {
         // After a reload the server may still hold our old session for a moment.
         // Keep a remembered code for a few tries, then pick a new one.

@@ -341,7 +341,7 @@ dependencies = [
 
 [[package]]
 name = "captions-overlay"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "block2",
  "bzip2 0.6.1",
@@ -359,6 +359,7 @@ dependencies = [
  "tauri-plugin-autostart",
  "tauri-plugin-global-shortcut",
  "ureq 3.5.0",
+ "webkit2gtk",
 ]
 
 [[package]]

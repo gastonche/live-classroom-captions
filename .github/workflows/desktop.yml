@@ -61,6 +61,19 @@ jobs:
         run: cargo test --release
       - name: Build the app
         run: npx tauri build --bundles ${{ matrix.bundles }}
+      - name: Linux check - the app starts, WebRTC works, the room registers
+        # Runs the real app on a virtual screen. Student phones need WebRTC, which WebKitGTK
+        # ships switched off; the app switches it on. Reported, never blocks the release.
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        shell: bash
+        run: |
+          sudo apt-get install -y xvfb dbus-x11 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-nice
+          CAPTIONS_MODELS=/tmp/no-models timeout 45 xvfb-run -a dbus-run-session -- src-tauri/target/release/captions-overlay > linux-check.log 2>&1 || true
+          grep -E "native|overlay" linux-check.log | cut -c1-200 | head -30
+          grep -q "webrtc available" linux-check.log && echo "OK: WebRTC available"
+          grep -q "ready=true" linux-check.log && echo "OK: room registered"
+          grep -q "webrtc available" linux-check.log && grep -q "ready=true" linux-check.log
       - name: Collect the downloadable files
         shell: bash
         run: |

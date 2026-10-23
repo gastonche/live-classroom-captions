@@ -2,6 +2,9 @@
 terminal, editor, browser or slides. Speech is recognised **on the computer**, from a microphone
 plugged into it. Students can follow on their phones by scanning the QR code.
 
+**New in 0.2.1:** the CC menu no longer flickers while the models download; on Linux, student phones can connect
+(WebRTC is switched on) and the status no longer says "offline" when only the student connection is unavailable.
+
 > **Pre-release for testing.** macOS has been tested with a real microphone. Windows and Linux are new and **not yet tested on real machines**. Please report what works.
 
 ## Download
