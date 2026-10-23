@@ -390,6 +390,8 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<(Menu<Wry>, MenuI
     let hide = CheckMenuItem::with_id(app, "toggle-hide", l("hide"), true, s.hidden, accel("C"))?;
     let login = CheckMenuItem::with_id(app, "toggle-autostart", l("autostart"), true, s.autostart, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", l("quit"), true, Some("Cmd+Q"))?;
+    // Which version is running, to check an update took (greyed out, not clickable).
+    let version = MenuItem::with_id(app, "version", format!("Captions {}", app.package_info().version), false, None::<&str>)?;
 
     let menu = Menu::with_items(
         app,
@@ -410,6 +412,8 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<(Menu<Wry>, MenuI
             &sep()?,
             &login,
             &quit,
+            &sep()?,
+            &version,
         ],
     )?;
     if let Some(item) = setup {

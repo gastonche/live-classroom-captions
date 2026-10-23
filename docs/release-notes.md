@@ -10,6 +10,9 @@ Phones must be on the **same Wi-Fi** as the computer. A phone that joins late se
 > **Allow** on private networks, or phones can't connect. Some school Wi-Fi networks keep devices from seeing each
 > other ("client isolation"); if phones can't open the address, ask IT or use a phone hotspot.
 
+**New in 0.3.1:** the CC menu shows which version is running, at the bottom (for example "Captions 0.3.1").
+If your menu says "Offline, retrying…", you're still on 0.2.0: quit it and install this version.
+
 Also since 0.2.1: the CC menu no longer flickers while the models download.
 
 > **Pre-release for testing.** macOS has been tested with a real microphone. Windows and Linux are new and **not yet tested on real machines**. Please report what works.
@@ -29,7 +32,8 @@ The app is free and open source, and isn't registered with Apple or Microsoft, s
 
 - **Mac:** unzip, move **Captions** to Applications and open it. If macOS blocks it, go to **System Settings → Privacy & Security → Open Anyway**.
 - **Windows:** run the setup file. If Windows SmartScreen appears, choose **More info → Run anyway**.
-- **Linux (AppImage):** make it executable (`chmod +x Captions-*.AppImage`), then run it.
+- **Linux (AppImage):** delete any older Captions AppImage, make the new one executable (`chmod +x Captions-*.AppImage`), then run it.
+  If you'd turned on **Open at login**, turn it off and on again so it opens the new file.
   **Linux (.deb):** `sudo apt install ./Captions-*.deb`, then open **Captions** from your apps.
   Works best on an **X11** session. On Wayland, staying on top of other windows may be limited.
 

@@ -457,3 +457,7 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
 - Tests: Rust (paths, parsing, HTTP + WebSocket end to end), Playwright `lan.spec.ts` (address and QR, late join, live captions, pause, reconnect).
   **Real app on the Mac**: student page loaded from the Mac's Wi-Fi address on port 47213 (HTML, JS, CSS 200, `/overlay/` 404), a test recording's captions arrived live, and a late joiner got the whole lesson. Not yet tried from a real phone, on Windows, or on Linux.
 - CI Linux check now loads the student page from the running app under Xvfb.
+
+## v0.3.1 (2026-10-23): version in the CC menu
+- User (Linux): the menu flickers and shows "Offline, retrying…". That text exists only in 0.2.0 (0.2.1 renamed it; 0.3.0 has no internet room), so the laptop was still running 0.2.0.
+- The CC menu now ends with a greyed-out "Captions <version>" line. Release notes tell AppImage users to remove the old file and re-toggle Open at login.
