@@ -47,6 +47,11 @@ jobs:
       - run: npm ci
       - name: Web page for the app (and size budgets)
         run: npm run build
+      - name: Fetch the speech engine's native library afresh
+        # The Rust cache can restore sherpa-onnx-sys without the library its build script
+        # downloaded ("could not find native static library sherpa-onnx-c-api").
+        working-directory: src-tauri
+        run: cargo clean --release -p sherpa-onnx-sys
       - name: Rust unit tests
         working-directory: src-tauri
         run: cargo test --release
