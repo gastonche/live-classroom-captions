@@ -68,6 +68,22 @@ Then open **Settings**, switch the language to **Français**, and read:
 1. On another phone, open `/view/` and enter the same code.
 2. Talk. Captions appear there too, and you can scroll back through the whole session.
 
+## Desktop app v2: computer microphone (about 15 minutes)
+**Get it:** https://github.com/gastonche/live-classroom-captions/actions → latest "Desktop app" run → Artifacts.
+- **Windows:** unzip and run the setup `.exe`. If SmartScreen appears: **More info → Run anyway**.
+- **Mac:** unzip, move **Captions** to Applications, open it. If macOS blocks it: **System Settings → Privacy & Security → Open Anyway**.
+
+1. **First run:** a panel says speech models are needed. Choose **CC menu** (Mac menu bar, or the Windows tray near the clock) → **Download speech models**. Watch the progress. Optionally turn Wi-Fi off for 20 s mid-download: it should resume.
+2. **Microphone:** CC menu → **Microphone** → pick the mic you'll teach with. Choose **Start captions** and allow microphone access when asked.
+3. **Speak** the English and French scripts (step 3 above) at normal pace, from where you usually stand. Note wrong or missing words, and how long until words appear.
+4. **Silence:** stay quiet for 60 s. Nothing should appear. Then talk again: captions continue.
+5. **Over other apps:** full-screen terminal, VS Code, browser, PowerPoint or Keynote slide show. Captions stay on top, and clicks go through them.
+6. **Students:** CC menu → **Show student QR code**, scan it with a phone. Captions follow on the phone.
+7. **Mic problems:** unplug the USB mic for 10 s while live. The screen should say "Captions interrupted: microphone problem", then recover by itself when you plug it back.
+8. **End:** CC menu → **End and save transcript**. Check Documents/Captions for the `.txt` file.
+
+Send back: what worked, any wrong words, the computer's model, processor and RAM, and the mic used.
+
 ## Captions app (Mac overlay)
 1. The room code and QR card show on the projector until your phone pairs.
 2. Start captions: the box appears at the bottom. Click something **right under** the captions: the click reaches it.
