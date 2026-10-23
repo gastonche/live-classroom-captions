@@ -1,0 +1,5 @@
+/models/
+/.venv/
+/.build/
+/data/
+/results/*.json

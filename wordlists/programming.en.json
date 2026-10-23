@@ -3,7 +3,7 @@
   "lang": "en",
   "about": "Fixes common mishearings of programming terms (JavaScript, TypeScript, HTML/CSS, Python, git, npm, JSON, SQL, regex). Only phrases that are not ordinary classroom English, so normal speech passes through unchanged. Edit freely.",
   "rules": [
-    { "heard": ["bully", "bullion", "bully and", "boo lean", "bool lean", "boolean"], "write": "boolean" },
+    { "heard": ["bully", "bullion", "boo lean", "bool lean", "boolean"], "write": "boolean" },
     { "heard": ["boo leans", "booleans"], "write": "booleans" },
     { "heard": ["java script", "javascript"], "write": "JavaScript" },
     { "heard": ["type script", "typescript"], "write": "TypeScript" },

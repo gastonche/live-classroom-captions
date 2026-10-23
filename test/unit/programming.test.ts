@@ -13,7 +13,9 @@ describe('programming pack (English)', () => {
   const cases: [string, string][] = [
     ['it returns a bully', 'it returns a boolean'],
     ['a bullion value', 'a boolean value'],
-    ['this is a bully and so it is true or false', 'this is a boolean so it is true or false'],
+    // "bully and" is deliberately NOT a rule: it would delete a real "and" ("a bully and a string").
+    ['this is a bully and so it is true or false', 'this is a boolean and so it is true or false'],
+    ['it returns a bully and uses grip', 'it returns a boolean and uses grep'],
     ['the boo lean type', 'the boolean type'],
     ['two boo leans', 'two booleans'],
     ['save it as a Jason file', 'save it as a JSON file'],
