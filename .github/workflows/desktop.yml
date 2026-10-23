@@ -48,10 +48,14 @@ jobs:
       - name: Web page for the app (and size budgets)
         run: npm run build
       - name: Fetch the speech engine's native library afresh
-        # The Rust cache can restore sherpa-onnx-sys without the library its build script
-        # downloaded ("could not find native static library sherpa-onnx-c-api").
+        # sherpa-onnx-sys keeps its downloaded library in target/sherpa-onnx-prebuilt and only
+        # re-downloads when that folder is missing. The Rust cache restores the folder but not its
+        # files, so remove it and re-run the build script ("could not find native static library").
+        shell: bash
         working-directory: src-tauri
-        run: cargo clean --release -p sherpa-onnx-sys
+        run: |
+          rm -rf target/sherpa-onnx-prebuilt
+          cargo clean --release -p sherpa-onnx-sys
       - name: Rust unit tests
         working-directory: src-tauri
         run: cargo test --release
