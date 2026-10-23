@@ -416,3 +416,11 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
 - UX finding: the user couldn't find the app at first. The menu-bar icon is easy to miss, especially on a notched MacBook with a full menu bar.
   They managed via the keyboard shortcuts, then the menu.
 - **Decision (user, 2026-10-23): no visible control window for now.** Keep the app simple: menu-bar icon plus keyboard shortcuts only.
+
+## 2026-10-23 — Released v0.2.0 (pre-release, user-requested)
+- https://github.com/gastonche/live-classroom-captions/releases/tag/v0.2.0. Assets: macOS arm64 zip (9.9 MB), Windows x64 NSIS setup (7.5 MB),
+  Linux x64 AppImage (92 MB, bundles WebKitGTK) and .deb (15 MB). Notes: `docs/release-notes.md`. Built by `.github/workflows/desktop.yml` on the tag.
+- **Linux built first time** (Ubuntu 22.04: WebKitGTK 4.1, ayatana appindicator, ALSA). **Untested on a real Linux machine**, and on Wayland always-on-top may be limited.
+- CI bug fixed along the way: sherpa-onnx-sys caches its downloaded native library in `target/sherpa-onnx-prebuilt/` and skips the download if the folder exists.
+  Swatinem/rust-cache restored the folder empty, so the build hit "could not find native static library sherpa-onnx-c-api".
+  `cargo clean -p` alone didn't help (wrong first fix). Removing that folder before the build fixed it.
