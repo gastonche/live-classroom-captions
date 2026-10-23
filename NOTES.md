@@ -335,3 +335,11 @@ Real problem: Safari writes "bully" when the teacher says "boolean". Web Speech 
 - `npm run e2e`: Chromium **34 passed**; WebKit **32 passed, 2 skipped** (clipboard and network-change tests are Chromium-only, as before). New `tapfix.spec.ts`: bully → boolean end to end (rule in editor, survives reload), two-word selection, Cancel while captions flow, French strings.
 - `npm run e2e:prod`: **5 passed**.
 - Not tested yet: a real iPhone (tap accuracy on 18 px text, keyboard staying up while tapping word buttons).
+
+## 2026-10-23 — Direction change: v2 desktop with local recognition
+- User: the phone-as-mic form factor was wrong for real classes. Wanted: one desktop app (Mac, Windows, Linux) with a mic plugged into the computer, local and accurate models
+  on non-high-end machines, the on-top overlay on any display, and a student QR code for phones. **Sign language is out for now.** Priority: work correctly and reliably,
+  without missing or wrong words.
+- Spec: `docs/v2-desktop.md`, with measurable targets (no dropped audio, no clipped words, WER ≤ 5% EN / ≤ 8% FR, ≥ 95% term accuracy, zero invented text, latency, 3-hour soak).
+- Candidate models (sherpa-onnx releases, sizes checked from release metadata): kroko streaming EN/FR (55 MB each), Parakeet TDT 0.6B v3 int8 (465 MB), Canary 180M flash int8 (147 MB),
+  NeMo fast-conformer transducer int8 (102 MB), Whisper base (198 MB), Silero VAD v5 (2 MB). Nothing downloaded yet.
