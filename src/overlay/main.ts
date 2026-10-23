@@ -60,6 +60,10 @@ let micName = '';
 let micDownSince = 0;
 let ending: ReturnType<typeof setTimeout> | undefined;
 let notice = ''; // one-off status line in the menu (saved transcript, missing models)
+// Speech models: installed, missing (first run), or downloading.
+let models: 'ready' | 'missing' | 'installing' = 'ready';
+let modelsMb = 467;
+let setupHide: ReturnType<typeof setTimeout> | undefined;
 const transcript = new Transcript();
 
 const view = new CaptionView($('stage'), 4);
@@ -105,6 +109,11 @@ function showCode(code: string): void {
 
 function start(): void {
   if (host.state.live) return;
+  if (models !== 'ready') {
+    // Can't listen without the models: say what to do, right where the teacher looks.
+    setup(models === 'installing' ? $('setup-text').textContent || '' : fill(s.setupNeeded, { mb: String(modelsMb) }));
+    return;
+  }
   clearTimeout(ending);
   ending = undefined;
   notice = '';
@@ -186,12 +195,61 @@ function micHealth(): void {
   if (micDownSince && Date.now() - micDownSince > MIC_DOWN_MS) host.localMic(false);
 }
 
+// ---- First run: speech models ----------------------------------------------------------
+
+function setup(text: string, fraction?: number, stage = ''): void {
+  clearTimeout(setupHide);
+  $('setup').hidden = false;
+  $('setup').dataset.stage = stage;
+  $('setup-text').textContent = text;
+  if (fraction !== undefined) ($('setup-bar') as HTMLElement).style.width = `${Math.round(fraction * 100)}%`;
+}
+
+function onModels(p: native.ModelsProgress): void {
+  const mb = (n: number) => String(Math.round(n / 1048576));
+  if (p.stage === 'download') {
+    models = 'installing';
+    const pct = Math.floor((100 * p.done) / Math.max(p.total, 1));
+    setup(fill(s.setupDownloading, { pct: String(pct), done: mb(p.done), total: mb(p.total) }), p.done / p.total);
+  } else if (p.stage === 'unpack') {
+    setup(s.setupUnpacking, 1);
+  } else if (p.stage === 'verify') {
+    setup(s.setupChecking, 1);
+  } else if (p.stage === 'done') {
+    models = 'ready';
+    setup(s.setupDone, 1, 'done');
+    setupHide = setTimeout(() => ($('setup').hidden = true), 8000);
+  } else if (p.stage === 'error') {
+    models = 'missing';
+    setup(fill(s.setupError, { detail: p.detail }), 0, 'error');
+  } else if (p.stage === 'cancelled') {
+    models = 'missing';
+    setup(fill(s.setupNeeded, { mb: String(modelsMb) }), 0);
+  }
+  native.log(`models ${p.stage} ${p.done}/${p.total} ${p.detail}`);
+  render();
+}
+
+function checkModels(): void {
+  native.modelsStatus().then((st) => {
+    modelsMb = Math.round(st.totalBytes / 1048576);
+    models = st.ready ? 'ready' : st.installing ? 'installing' : 'missing';
+    if (models === 'missing') setup(fill(s.setupNeeded, { mb: String(modelsMb) }), 0);
+    render();
+  });
+}
+
 // ---- Menu-bar items and global shortcuts -----------------------------------------------
 
 function action(id: string): void {
   log('overlay', 'action ' + id);
   native.log('page got action ' + id);
-  if (id === 'start') start();
+  if (id === 'download-models') {
+    models = 'installing';
+    setup(fill(s.setupDownloading, { pct: '0', done: '0', total: String(modelsMb) }), 0);
+    native.modelsInstall();
+  } else if (id === 'cancel-download') native.modelsCancel();
+  else if (id === 'start') start();
   else if (id === 'pause') togglePause();
   else if (id === 'end') end();
   else if (id === 'pos-top' || id === 'pos-bottom') movePosition(id === 'pos-top' ? 'top' : 'bottom');
@@ -283,7 +341,11 @@ function pushMenu(): void {
   const st = host.state;
   const status = notice
     ? notice
-    : !st.ready
+    : models === 'missing'
+      ? s.statusSetup
+      : models === 'installing'
+        ? $('setup-text').textContent || s.statusSetup
+        : !st.ready
       ? st.net === 'offline'
         ? s.statusOffline
         : s.statusConnecting
@@ -305,7 +367,10 @@ function pushMenu(): void {
     lang: set.lang,
     mic: set.mic,
     mics,
+    models,
     labels: {
+      download: fill(s.menuDownload, { mb: String(modelsMb) }),
+      cancelDownload: s.menuCancelDownload,
       start: s.menuStart,
       pause: s.menuPause,
       resume: s.menuResume,
@@ -374,6 +439,8 @@ function boot(): void {
   host.start();
   native.onAction(action);
   native.onAsr(onAsr);
+  native.onModels(onModels);
+  checkModels();
   watchMonitors();
   watchMics();
   setInterval(render, 1000); // card timeout, menu status

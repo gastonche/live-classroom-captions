@@ -105,3 +105,29 @@ test('the page is see-through: only the box is drawn', async ({ browser }) => {
   const bg = await ov.evaluate(() => [getComputedStyle(document.documentElement).backgroundColor, getComputedStyle(document.body).backgroundColor]);
   expect(bg).toEqual(['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0)']);
 });
+
+test('first run: models missing → clear setup message, Start refused, progress, then ready', async ({ browser }) => {
+  const page = await device(browser);
+  await page.goto(`/overlay/?models=missing&${SIGNAL}`);
+  await expect(page.locator('#setup')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#setup-text')).toContainText('Speech models needed (467 MB, one time)');
+  await act(page, 'start');
+  await expect(page.locator('#box')).toBeHidden(); // can't listen yet
+
+  const models = (e: object) => page.evaluate((e) => (window as any).__models(e), e);
+  const total = 489_483_156;
+  await act(page, 'download-models');
+  await models({ stage: 'download', done: total / 4, total, detail: '' });
+  await expect(page.locator('#setup-text')).toHaveText('Downloading speech models… 25% (117 of 467 MB)');
+  await expect.poll(() => page.locator('#setup-bar').evaluate((e) => (e as HTMLElement).style.width)).toBe('25%');
+  await models({ stage: 'error', done: 0, total, detail: 'connection lost' });
+  await expect(page.locator('#setup-text')).toContainText('Download stopped: connection lost');
+  await models({ stage: 'unpack', done: total, total, detail: '' });
+  await models({ stage: 'done', done: total, total, detail: '' });
+  await expect(page.locator('#setup-text')).toHaveText('Speech models ready. Choose Start captions.');
+
+  await act(page, 'start');
+  await asr(page, { kind: 'state', state: 'listening', detail: 'Test mic' });
+  await asr(page, { kind: 'final', text: 'ready to teach' });
+  await expect(page.locator('#stage')).toHaveText('ready to teach');
+});

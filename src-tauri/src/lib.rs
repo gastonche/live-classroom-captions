@@ -3,10 +3,12 @@
 // on every Space and full-screen app), puts it on the projector, and runs the menu-bar
 // menu and global shortcuts. Menu and shortcut actions go to the page as "action" events.
 mod asr;
+mod models;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -34,25 +36,63 @@ struct MenuState {
     lang: String,
     mic: String,
     mics: Vec<String>,
+    models: String,
     labels: HashMap<String, String>,
 }
 
 struct Tray(Mutex<Option<TrayIcon<Wry>>>);
 struct Asr(Mutex<Option<asr::Session>>);
 
-/// Where the speech models live: $CAPTIONS_MODELS, else the app's data folder, else (during
-/// development) the benchmark's download folder.
+/// Where the speech models live: $CAPTIONS_MODELS, else the app's data folder (where the
+/// first-run download puts them), else, during development, the benchmark's folder.
 fn models_dir(app: &AppHandle) -> PathBuf {
     if let Ok(d) = std::env::var("CAPTIONS_MODELS") {
         return d.into();
     }
-    if let Ok(d) = app.path().app_data_dir() {
-        let m = d.join("models");
-        if m.join("silero_vad_v5.onnx").exists() {
-            return m;
-        }
+    let installed = app.path().app_data_dir().map(|d| d.join("models")).unwrap_or_else(|_| PathBuf::from("models"));
+    let dev = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../bench/models"));
+    if !models::ready(&installed) && models::present(&dev) {
+        return dev;
     }
-    PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../bench/models"))
+    installed
+}
+
+struct Install(Arc<AtomicBool>, Mutex<bool>);
+
+#[tauri::command]
+fn models_status(app: AppHandle) -> Value {
+    let dir = models_dir(&app);
+    let ready = models::ready(&dir) || models::present(&dir);
+    json!({ "ready": ready, "installing": *app.state::<Install>().1.lock().unwrap(), "totalBytes": models::TOTAL_BYTES, "dir": dir })
+}
+
+/// Starts the one-time model download; progress arrives as "models" events.
+#[tauri::command]
+fn models_install(app: AppHandle) {
+    let state = app.state::<Install>();
+    let mut busy = state.1.lock().unwrap();
+    if *busy {
+        return;
+    }
+    *busy = true;
+    state.0.store(false, Ordering::SeqCst);
+    let dir = std::env::var("CAPTIONS_MODELS").map(PathBuf::from).unwrap_or_else(|_| {
+        app.path().app_data_dir().map(|d| d.join("models")).unwrap_or_else(|_| PathBuf::from("models"))
+    });
+    eprintln!("[native] installing models into {}", dir.display());
+    let emitter = app.clone();
+    models::spawn_install(dir, state.0.clone(), move |p| {
+        if matches!(p.stage, "done" | "error" | "cancelled") {
+            eprintln!("[native] models {}: {}", p.stage, p.detail);
+            *emitter.state::<Install>().1.lock().unwrap() = false;
+        }
+        let _ = emitter.emit_to(WINDOW, "models", p);
+    });
+}
+
+#[tauri::command]
+fn models_cancel(app: AppHandle) {
+    app.state::<Install>().0.store(true, Ordering::SeqCst);
 }
 
 #[tauri::command]
@@ -101,8 +141,23 @@ fn save_transcript(app: AppHandle, name: String, text: String) -> Result<String,
     Ok(path.to_string_lossy().into_owned())
 }
 
+// Mac: Ctrl+Option+Cmd. Windows and Linux: Ctrl+Alt+Shift (Windows reserves many Win-key
+// combinations for its own desktop shortcuts).
+#[cfg(target_os = "macos")]
+const MODS: Modifiers = Modifiers::CONTROL.union(Modifiers::ALT).union(Modifiers::SUPER);
+#[cfg(not(target_os = "macos"))]
+const MODS: Modifiers = Modifiers::CONTROL.union(Modifiers::ALT).union(Modifiers::SHIFT);
+#[cfg(target_os = "macos")]
+const MODS_LABEL: &str = "Ctrl+Alt+Cmd";
+#[cfg(not(target_os = "macos"))]
+const MODS_LABEL: &str = "Ctrl+Alt+Shift";
+
+fn accel(key: &str) -> Option<String> {
+    Some(format!("{MODS_LABEL}+{key}"))
+}
+
 fn shortcuts() -> [(Shortcut, &'static str); 5] {
-    let m = Modifiers::CONTROL | Modifiers::ALT | Modifiers::SUPER;
+    let m = MODS;
     [
         (Shortcut::new(Some(m), Code::KeyS), "start"),
         (Shortcut::new(Some(m), Code::KeyP), "pause"),
@@ -251,14 +306,22 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
     let status = MenuItem::with_id(app, "status", &s.status, false, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(app);
 
+    // First run: the models must be downloaded (on the teacher's say-so) before listening.
+    let ready = s.models.is_empty() || s.models == "ready";
+    let setup = match s.models.as_str() {
+        "missing" => Some(MenuItem::with_id(app, "download-models", l("download"), true, None::<&str>)?),
+        "installing" => Some(MenuItem::with_id(app, "cancel-download", l("cancelDownload"), true, None::<&str>)?),
+        _ => None,
+    };
+
     // The lesson: one obvious action at a time.
-    let start = MenuItem::with_id(app, "start", l("start"), !s.live, Some("Ctrl+Alt+Cmd+S"))?;
-    let pause = MenuItem::with_id(app, "pause", if s.paused { l("resume") } else { l("pause") }, s.live, Some("Ctrl+Alt+Cmd+P"))?;
+    let start = MenuItem::with_id(app, "start", l("start"), !s.live && ready, accel("S"))?;
+    let pause = MenuItem::with_id(app, "pause", if s.paused { l("resume") } else { l("pause") }, s.live, accel("P"))?;
     let end = MenuItem::with_id(app, "end", l("end"), s.live, None::<&str>)?;
     let show_code = MenuItem::with_id(app, "show-code", format!("{} ({})", l("showCode"), s.code), true, None::<&str>)?;
 
-    let top = CheckMenuItem::with_id(app, "pos-top", l("top"), true, s.position == "top", Some("Ctrl+Alt+Cmd+Up"))?;
-    let bottom = CheckMenuItem::with_id(app, "pos-bottom", l("bottom"), true, s.position == "bottom", Some("Ctrl+Alt+Cmd+Down"))?;
+    let top = CheckMenuItem::with_id(app, "pos-top", l("top"), true, s.position == "top", accel("Up"))?;
+    let bottom = CheckMenuItem::with_id(app, "pos-bottom", l("bottom"), true, s.position == "bottom", accel("Down"))?;
     let position = Submenu::with_items(app, l("position"), true, &[&top, &bottom])?;
 
     let auto = CheckMenuItem::with_id(app, "monitor:", l("projector"), true, s.monitor.is_empty(), None::<&str>)?;
@@ -278,11 +341,11 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
     let language = Submenu::with_items(app, l("language"), true, &[&en, &fr])?;
 
     let dodge = CheckMenuItem::with_id(app, "toggle-dodge", l("dodge"), true, s.dodge, None::<&str>)?;
-    let hide = CheckMenuItem::with_id(app, "toggle-hide", l("hide"), true, s.hidden, Some("Ctrl+Alt+Cmd+C"))?;
+    let hide = CheckMenuItem::with_id(app, "toggle-hide", l("hide"), true, s.hidden, accel("C"))?;
     let login = CheckMenuItem::with_id(app, "toggle-autostart", l("autostart"), true, s.autostart, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", l("quit"), true, Some("Cmd+Q"))?;
 
-    Menu::with_items(
+    let menu = Menu::with_items(
         app,
         &[
             &status,
@@ -302,7 +365,11 @@ fn build_menu(app: &AppHandle, s: &MenuState) -> tauri::Result<Menu<Wry>> {
             &login,
             &quit,
         ],
-    )
+    )?;
+    if let Some(item) = setup {
+        menu.insert(&item, 1)?;
+    }
+    Ok(menu)
 }
 
 #[cfg(target_os = "macos")]
@@ -444,7 +511,8 @@ pub fn run() {
         .on_page_load(|w, p| eprintln!("[native] page {:?} {} ({})", p.event(), p.url(), w.label()))
         .manage(Tray(Mutex::new(None)))
         .manage(Asr(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![monitors, place, cursor, reassert, autostart, set_menu, log, asr_devices, asr_start, asr_stop, save_transcript])
+        .manage(Install(Arc::new(AtomicBool::new(false)), Mutex::new(false)))
+        .invoke_handler(tauri::generate_handler![monitors, place, cursor, reassert, autostart, set_menu, log, asr_devices, asr_start, asr_stop, save_transcript, models_status, models_install, models_cancel])
         .setup(|app| {
             // A menu-bar app: no Dock icon, never steals focus from the lesson.
             #[cfg(target_os = "macos")]
@@ -464,7 +532,12 @@ pub fn run() {
                 let _ = app.global_shortcut().register(sc);
             }
 
+            // Mac: a template icon the menu bar tints. Elsewhere: the full-colour icon, which
+            // stays visible on light and dark taskbars.
+            #[cfg(target_os = "macos")]
             let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
+            #[cfg(not(target_os = "macos"))]
+            let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))?;
             let initial = build_menu(app.handle(), &MenuState { status: "Captions".into(), position: "bottom".into(), lang: "en".into(), ..Default::default() })?;
             let tray = TrayIconBuilder::with_id("main")
                 .icon(icon)

@@ -84,3 +84,20 @@ body[data-position="top"] .card { top: auto; bottom: calc(var(--margin) * 1vh); 
 @media (prefers-reduced-motion: no-preference) {
   .box, .chip { transition: top 0.25s ease, bottom 0.25s ease; }
 }
+
+/* First-run setup: model download progress, bottom-left. */
+.setup {
+  position: fixed;
+  left: calc(var(--margin) * 1vh);
+  bottom: calc(var(--margin) * 1vh);
+  width: min(34vw, 60vh);
+  padding: 1.6vh;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  border-radius: 1.6vh;
+  font-size: 2vh;
+}
+.setup-text { margin: 0 0 1.2vh; line-height: 1.35; }
+.bar { height: 0.9vh; background: #333; border-radius: 1vh; overflow: hidden; }
+#setup-bar { height: 100%; width: 0; background: #4ade80; }
+.setup[data-stage="error"] #setup-bar { background: #f87171; }

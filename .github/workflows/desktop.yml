@@ -1,0 +1,50 @@
+# Builds the desktop captions app: macOS (Apple Silicon) .app and a Windows installer.
+# Runs on demand, on version tags, and when the app or its web page changes.
+# The speech models are not built in: the app downloads them on first run.
+name: Desktop app
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    branches: [main]
+    paths: ['src-tauri/**', 'src/**', 'overlay/**', 'wordlists/**', '.github/workflows/desktop.yml']
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            bundles: app
+            artifact: Captions-macOS-arm64
+            path: src-tauri/target/release/bundle/macos/
+          - os: windows-latest
+            bundles: nsis
+            artifact: Captions-Windows-x64-setup
+            path: src-tauri/target/release/bundle/nsis/
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - name: Web page for the app (and size budgets)
+        run: npm run build
+      - name: Rust unit tests
+        working-directory: src-tauri
+        run: cargo test --release
+      - name: Build the app
+        run: npx tauri build --bundles ${{ matrix.bundles }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error

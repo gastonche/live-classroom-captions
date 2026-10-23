@@ -25,8 +25,36 @@ export type MenuState = {
   lang: 'en' | 'fr';
   mic: string;
   mics: string[];
+  models: 'ready' | 'missing' | 'installing';
   labels: Record<string, string>;
 };
+
+export type ModelsProgress = {
+  stage: 'download' | 'verify' | 'unpack' | 'done' | 'error' | 'cancelled';
+  done: number;
+  total: number;
+  detail: string;
+};
+
+/** Whether the speech models are installed. In a browser, tests choose with ?models=missing. */
+export async function modelsStatus(): Promise<{ ready: boolean; installing: boolean; totalBytes: number }> {
+  if (inApp) return invoke('models_status');
+  return { ready: new URLSearchParams(location.search).get('models') !== 'missing', installing: false, totalBytes: 489_483_156 };
+}
+
+export async function modelsInstall(): Promise<void> {
+  if (inApp) await invoke('models_install');
+}
+
+export async function modelsCancel(): Promise<void> {
+  if (inApp) await invoke('models_cancel');
+}
+
+/** Download progress. Tests inject the same events through window.__models. */
+export function onModels(fn: (p: ModelsProgress) => void): void {
+  if (inApp) listen<ModelsProgress>('models', (e) => fn(e.payload));
+  (window as any).__models = fn;
+}
 
 export type AsrEvent =
   | { kind: 'interim'; text: string }

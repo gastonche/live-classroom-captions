@@ -20,6 +20,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sherpa-onnx = "1.13.8"
 cpal = "0.18"
+ureq = "3.5"
+sha2 = "0.10"
+bzip2 = "0.6"
+tar = "0.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

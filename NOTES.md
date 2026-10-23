@@ -390,3 +390,17 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
 - App bundle **21.9 MB** (speech engine statically linked). Models are separate.
 - **Not done yet:** (1) **first-run model download**: models are found via `CAPTIONS_MODELS`, the app data folder, or (dev only) `bench/models`, so on another computer they're missing.
   (2) Real-mic test with the teacher's voice. (3) 3-hour soak test, plus mic unplug and replug on real hardware. (4) Windows and Linux builds.
+
+## First-run model download and Windows build (2026-10-23)
+- `src-tauri/src/models.rs`: on the teacher's say-so (menu **Download speech models (467 MB, one time)**; nothing downloads by itself, since networks cost money):
+  `silero_vad_v5.onnx` (2.3 MB) and the Parakeet v3 int8 archive (465 MB) from the sherpa-onnx GitHub release, into the app data folder.
+  - **Checksums pinned:** the archive's SHA-256 is GitHub's published digest. The VAD file has no published digest, so it's pinned from our verified copy.
+    The 4 extracted files (encoder, decoder, joiner, tokens) are pinned too, and match both the benchmarked copies and Hugging Face's published LFS hashes.
+  - **Only those 4 files** are taken from the archive (no archive paths are used: tested against `../` escapes), then the archive is deleted.
+  - **Chunked range downloads (8 MB per request, 3 min each)** with resume, and retries counted as *consecutive stalls without progress* (8 max, backoff ≤ 30 s).
+    **Bug found by the real test:** the first version gave each attempt a 60 s limit on the whole transfer, so a 465 MB download could never finish (338 s, then fail).
+  - **Real test** (`cargo test --release -- --ignored real_install`): interrupted after 4 s, resumed at byte 2,441,543, verified, unpacked, archive removed. **705 s on this Mac's link (~0.7 MB/s).**
+  - Overlay: a setup panel (bottom-left) with a progress bar; Start disabled until ready; errors say how to resume. E2E covers missing → progress → error → done → captions.
+- **Windows:** shortcuts are Ctrl+Alt+Shift+… (Win-key combos are reserved by Windows); colour tray icon; NSIS installer (`tauri.windows.conf.json`, per-user, EN/FR).
+  Built on GitHub Actions (`.github/workflows/desktop.yml`: macOS arm64 `.app` and Windows x64 installer, both with Rust unit tests). **Untested on a real Windows PC.**
+- Tests: Rust 5 unit (+3 ignored: engine on a recording, pinned checksums, real install), web 198 unit, **70 e2e**. All pass.
