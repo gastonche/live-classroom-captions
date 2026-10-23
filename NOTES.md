@@ -414,4 +414,5 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
 - Errors: "Beaut programs" (the teacher restarted "build" mid-word; the model wrote the fragment), and one odd sentence break ("understand. That bash…").
   Technical terms (**bash, boolean, HTML**) all right. No invented text.
 - UX finding: the user couldn't find the app at first. The menu-bar icon is easy to miss, especially on a notched MacBook with a full menu bar.
-  They managed via the keyboard shortcuts, then the menu. **A visible control window is needed.**
+  They managed via the keyboard shortcuts, then the menu.
+- **Decision (user, 2026-10-23): no visible control window for now.** Keep the app simple: menu-bar icon plus keyboard shortcuts only.
