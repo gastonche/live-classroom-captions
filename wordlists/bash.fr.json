@@ -3,7 +3,7 @@
   "lang": "fr",
   "about": "Corrige les erreurs fréquentes de reconnaissance des termes du shell. « heard » est ce que la reconnaissance écrit, « write » ce qui s'affiche. Modifiable.",
   "rules": [
-    { "heard": ["grèpe", "graipe", "grep", "g rep"], "write": "grep" },
+    { "heard": ["grèpe", "graipe", "grip", "grep", "g rep"], "write": "grep" },
     { "heard": ["ché mode", "chemod", "c h mode", "ch mode", "chmod"], "write": "chmod" },
     { "heard": ["ché own", "c h own", "ch own", "chown"], "write": "chown" },
     { "heard": ["soudeau", "soudo", "sous do", "sudo", "pseudo"], "write": "sudo" },

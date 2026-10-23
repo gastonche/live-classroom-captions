@@ -41,6 +41,50 @@ def pick(d: Path, pattern: str) -> str:
     return str((int8 or files)[0])
 
 
+# ---- Hotwords -----------------------------------------------------------------------------
+# Course terms (the word lists' correct spellings) given to the model in advance. sherpa-onnx
+# wants them split into the model's own word pieces; these models ship tokens.txt but no
+# sentencepiece model, so split greedily by longest matching piece.
+
+def tokenise(word: str, vocab: set[str]) -> list[str] | None:
+    pieces, rest, first = [], word, True
+    while rest:
+        for n in range(len(rest), 0, -1):
+            cand = ('▁' if first else '') + rest[:n]
+            if cand in vocab:
+                pieces.append(cand)
+                rest, first = rest[n:], False
+                break
+        else:
+            return None
+    return pieces
+
+
+def hotwords_file(d: Path, lang: str, terms: list[str]) -> str:
+    vocab = {line.split()[0] for line in (d / 'tokens.txt').read_text().splitlines() if line.split()}
+    lower = all(not any(c.isupper() for c in t) for t in list(vocab)[:2000])
+    lines = []
+    for term in terms:
+        words = [w for w in re.split(r'[\s]+', term.lower() if lower else term) if w]
+        toks = [tokenise(w, vocab) or tokenise(w.lower(), vocab) for w in words]
+        if all(toks):
+            lines.append(' '.join(t for ts in toks for t in ts))
+    path = HERE / '.build' / f'hotwords-{d.name}-{lang}.txt'
+    path.parent.mkdir(exist_ok=True)
+    path.write_text('\n'.join(lines) + '\n')
+    return str(path)
+
+
+HOT = {'enabled': False, 'beam': False, 'score': 2.0, 'terms': {}}
+
+
+def hot_args(d: Path, lang: str) -> dict:
+    if not HOT['enabled']:
+        return {'decoding_method': 'modified_beam_search'} if HOT['beam'] else {}
+    return {'decoding_method': 'modified_beam_search', 'hotwords_file': hotwords_file(d, lang, HOT['terms'][lang]),
+            'hotwords_score': HOT['score']}
+
+
 # ---- Models -------------------------------------------------------------------------------
 
 def offline(name: str, lang: str, threads: int):
@@ -48,7 +92,7 @@ def offline(name: str, lang: str, threads: int):
         d = model_dir('sherpa-onnx-nemo-parakeet-tdt-0.6b-v3')
         return so.OfflineRecognizer.from_transducer(
             encoder=pick(d, 'encoder*.onnx'), decoder=pick(d, 'decoder*.onnx'), joiner=pick(d, 'joiner*.onnx'),
-            tokens=str(d / 'tokens.txt'), model_type='nemo_transducer', num_threads=threads)
+            tokens=str(d / 'tokens.txt'), model_type='nemo_transducer', num_threads=threads, **hot_args(d, lang))
     if name == 'canary-180m':
         d = model_dir('sherpa-onnx-nemo-canary-180m-flash')
         return so.OfflineRecognizer.from_nemo_canary(
@@ -71,7 +115,7 @@ def streaming(lang: str, threads: int):
     d = model_dir(f'sherpa-onnx-streaming-zipformer-{lang}-kroko')
     return so.OnlineRecognizer.from_transducer(
         encoder=pick(d, 'encoder*.onnx'), decoder=pick(d, 'decoder*.onnx'), joiner=pick(d, 'joiner*.onnx'),
-        tokens=str(d / 'tokens.txt'), num_threads=threads, enable_endpoint_detection=True,
+        tokens=str(d / 'tokens.txt'), num_threads=threads, enable_endpoint_detection=True, **hot_args(d, lang),
         rule1_min_trailing_silence=2.4, rule2_min_trailing_silence=0.8, rule3_min_utterance_length=20)
 
 
@@ -192,7 +236,13 @@ def main() -> None:
     ap.add_argument('--set', default='synthetic')
     ap.add_argument('--threads', type=int, default=2)  # a modest laptop, not this Mac's 10 cores
     ap.add_argument('--models', default='kroko,parakeet-v3,canary-180m,fastconformer,whisper-base')
+    ap.add_argument('--hotwords', action='store_true', help='give course terms to the model in advance')
+    ap.add_argument('--beam', action='store_true', help='beam search without hotwords (fair control)')
+    ap.add_argument('--hot-score', type=float, default=2.0)
     args = ap.parse_args()
+    HOT.update(enabled=args.hotwords, beam=args.beam, score=args.hot_score)
+    if args.hotwords:
+        HOT['terms'] = {lang: fix(lang, [])[1] for lang in ('en', 'fr')}
 
     data = HERE / 'data' / args.set
     items = json.loads((data / 'manifest.json').read_text())['items']
@@ -228,6 +278,7 @@ def main() -> None:
                 examples.append({'file': it['file'], 'raw': r, 'fixed': f})
             row = {
                 'model': name, 'lang': lang, 'threads': args.threads,
+                'mode': 'hotwords' if args.hotwords else 'beam' if args.beam else 'greedy',
                 'wer': round(100 * edits / max(words, 1), 1), 'terms': f'{hit}/{tot}',
                 'term_acc': round(100 * hit / max(tot, 1), 1), 'invented_words': invented,
                 'rtf': round(secs / max(audio, 1e-9), 3), 'load_s': round(load, 1), 'examples': examples,
@@ -237,7 +288,8 @@ def main() -> None:
                   f"invented {invented:3d}  RTF {row['rtf']:.3f}  load {row['load_s']}s", flush=True)
     out = HERE / 'results'
     out.mkdir(exist_ok=True)
-    path = out / f"{args.set}-t{args.threads}-{time.strftime('%Y%m%d-%H%M%S')}.json"
+    mode = 'hot' if args.hotwords else 'beam' if args.beam else 'greedy'
+    path = out / f"{args.set}-t{args.threads}-{mode}-{time.strftime('%Y%m%d-%H%M%S')}.json"
     path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
     print(f'\nfull results: {path}')
 

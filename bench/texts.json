@@ -1,10 +1,10 @@
 {
-  "about": "Reference texts for the benchmark. Real recordings of the teacher reading these replace the synthetic voices; see bench/README.md.",
+  "about": "Reference texts, written the way the caption should read (e.g. 'log.txt', not 'log dot txt'). Real recordings of the teacher reading these replace the synthetic voices; see bench/README.md.",
   "items": [
     {
       "id": "bash-en",
       "lang": "en",
-      "text": "Good morning everyone. Today we are going to learn how to search inside files. The command is grep. To find the word error in a log file, type grep error log dot txt. If you get permission denied, use sudo, or change the permissions with chmod. You can send the output of one command into another with a pipe. For example, ls pipe grep txt. Then sort the results with sort. Finally, make a new folder with mkdir and move into it with cd."
+      "text": "Good morning everyone. Today we are going to learn how to search inside files. The command is grep. To find the word error in a log file, type grep error log.txt. If you get permission denied, use sudo, or change the permissions with chmod. You can send the output of one command into another with a pipe. For example, ls pipe grep txt. Then sort the results with sort. Finally, make a new folder with mkdir and move into it with cd."
     },
     {
       "id": "prog-en",
@@ -14,7 +14,7 @@
     {
       "id": "bash-fr",
       "lang": "fr",
-      "text": "Bonjour à tous. Aujourd'hui, nous allons apprendre à chercher dans les fichiers. La commande s'appelle grep. Pour trouver le mot erreur, tapez grep erreur journal point txt. Si vous avez une erreur de permission, utilisez sudo, ou changez les droits avec chmod. On peut envoyer la sortie d'une commande vers une autre avec un pipe, par exemple ls pipe grep txt. Enfin, créez un dossier avec mkdir et entrez dedans avec cd."
+      "text": "Bonjour à tous. Aujourd'hui, nous allons apprendre à chercher dans les fichiers. La commande s'appelle grep. Pour trouver le mot erreur, tapez grep erreur journal.txt. Si vous avez une erreur de permission, utilisez sudo, ou changez les droits avec chmod. On peut envoyer la sortie d'une commande vers une autre avec un pipe, par exemple ls pipe grep txt. Enfin, créez un dossier avec mkdir et entrez dedans avec cd."
     },
     {
       "id": "prog-fr",
@@ -22,5 +22,14 @@
       "text": "En JavaScript, un booléen vaut vrai ou faux. On analyse la réponse JSON dans une fonction async, puis on attend le résultat avec await. Ensuite, on met à jour le DOM et on pousse le code sur GitHub. On installe le paquet avec npm et on ouvre l'application sur localhost. En Python, un tuple ne peut pas être modifié, mais une liste oui."
     }
   ],
-  "voices": { "en": ["Samantha", "Eddy (English (US))"], "fr": ["Jacques", "Flo (French (France))"] }
+  "voices": {
+    "en": [
+      "Samantha",
+      "Eddy (English (US))"
+    ],
+    "fr": [
+      "Jacques",
+      "Flo (French (France))"
+    ]
+  }
 }

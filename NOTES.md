@@ -343,3 +343,30 @@ Real problem: Safari writes "bully" when the teacher says "boolean". Web Speech 
 - Spec: `docs/v2-desktop.md`, with measurable targets (no dropped audio, no clipped words, WER ≤ 5% EN / ≤ 8% FR, ≥ 95% term accuracy, zero invented text, latency, 3-hour soak).
 - Candidate models (sherpa-onnx releases, sizes checked from release metadata): kroko streaming EN/FR (55 MB each), Parakeet TDT 0.6B v3 int8 (465 MB), Canary 180M flash int8 (147 MB),
   NeMo fast-conformer transducer int8 (102 MB), Whisper base (198 MB), Silero VAD v5 (2 MB). Nothing downloaded yet.
+
+### First benchmark: synthetic voices, 2 threads, this Mac (2026-10-23)
+Set: 4 scripts × 2 macOS voices per language (EN: Samantha, Eddy; FR: Jacques, Flo), plus silence and noise. **Computer voices: good for speed and harness checks, not for choosing a model.**
+References are written as the caption should read (`log.txt`, not "log dot txt").
+
+| Model (greedy) | EN WER | EN terms | FR WER | FR terms | Invented (silence/noise) | RTF @2 threads |
+|---|---|---|---|---|---|---|
+| kroko streaming (EN/FR) | 11.0% | 70% | 28.2% | 14% | 0 | 0.013 |
+| **Parakeet TDT 0.6B v3** | 12.3% | 68% | **21.4%** | **25%** | 0 | 0.028 |
+| Canary 180M flash | 23.7% | 60% | 44.7% | 7% | 0 | 0.051 |
+| NeMo fast-conformer | 22.3% | 40% | 36.1% | 0% | 0 | 0.012 |
+| Whisper base | **9.0%** | 68% | 34.2% | 7% | 0 | 0.052 |
+
+- **Speed is a non-issue:** every model runs at under 0.07× real time on 2 threads. A machine 10× slower than this Mac still keeps up.
+- **No model invented text** on 20 s of silence or noise (greedy decoding).
+- **The hard problem is English commands inside French speech:** "grep" became "grip", "sudo" became "ce do", "chmod" became "mots", "mkdir" became "MD".
+  Added the safe French rule `grip → grep`. "mots" can't be a rule (it's an ordinary word).
+- **Hotwords** (course terms given in advance, `modified_beam_search`): at score 2.0 **no change**, identical to beam search without hotwords.
+  At 12.0 they apply but **break output** (Parakeet EN 100% WER, kroko invents words on noise). The cause is likely that terms were split greedily from `tokens.txt` rather than with each model's real
+  sentencepiece model (not shipped in these downloads). Proper hotwords need the real tokenizer and score tuning. **Not a quick win.**
+- Beam search alone: small gain for Parakeet EN (12.3% → 10.7%).
+- **Licences:** Parakeet and Canary are CC-BY-4.0, Whisper and Silero MIT, **kroko community models CC-BY-SA** (attribution, share-alike on model changes; the model card metadata is unclear).
+  Prefer CC-BY or MIT models when quality is equal.
+- **Tentative direction:** Parakeet v3 for final text (best French, good English, fast, CC-BY). Because it's so fast, it may also produce the in-progress words by re-decoding the growing
+  segment every ~0.5 s. That would mean one model and no CC-BY-SA dependency. To test.
+- Fixed in passing: the programming pack's `bully and → boolean` deleted a real "and". Removed, with a regression test.
+- **Decision waits on real recordings** with the classroom mic (bench/README.md).
