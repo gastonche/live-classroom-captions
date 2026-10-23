@@ -406,3 +406,12 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
 - Tests: Rust 5 unit (+3 ignored: engine on a recording, pinned checksums, real install), web 198 unit, **70 e2e**. All pass.
 - **First desktop build on GitHub Actions: both succeeded first time** (run 39926915738), including the Rust unit tests on Windows.
   Artifacts: `Captions-Windows-x64-setup` (7.5 MB zipped NSIS installer) and `Captions-macOS-arm64` (10.3 MB zipped .app). Not yet published as a release.
+
+### First real-microphone test (2026-10-23, the teacher's voice, USB mic "USBAudio1.0", this Mac)
+- Menu: picked the USB mic, Start, spoke ~1 min of natural teaching, End. The transcript was saved to Documents/Captions. 10 finals, 62 words.
+- Output: "Okay. So we are gonna be learning about bash programming today. And it's very essential for you to understand. That bash helps us. Beaut programs.
+  It helps us to build programs. Now think about bash as the software for boolean algebra. I know you understand what I'm saying. Okay. So HTML feeds into bash."
+- Errors: "Beaut programs" (the teacher restarted "build" mid-word; the model wrote the fragment), and one odd sentence break ("understand. That bash…").
+  Technical terms (**bash, boolean, HTML**) all right. No invented text.
+- UX finding: the user couldn't find the app at first. The menu-bar icon is easy to miss, especially on a notched MacBook with a full menu bar.
+  They managed via the keyboard shortcuts, then the menu. **A visible control window is needed.**
