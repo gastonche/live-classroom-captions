@@ -404,3 +404,5 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
 - **Windows:** shortcuts are Ctrl+Alt+Shift+… (Win-key combos are reserved by Windows); colour tray icon; NSIS installer (`tauri.windows.conf.json`, per-user, EN/FR).
   Built on GitHub Actions (`.github/workflows/desktop.yml`: macOS arm64 `.app` and Windows x64 installer, both with Rust unit tests). **Untested on a real Windows PC.**
 - Tests: Rust 5 unit (+3 ignored: engine on a recording, pinned checksums, real install), web 198 unit, **70 e2e**. All pass.
+- **First desktop build on GitHub Actions: both succeeded first time** (run 39926915738), including the Rust unit tests on Windows.
+  Artifacts: `Captions-Windows-x64-setup` (7.5 MB zipped NSIS installer) and `Captions-macOS-arm64` (10.3 MB zipped .app). Not yet published as a release.
