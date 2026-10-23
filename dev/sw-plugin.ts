@@ -8,7 +8,7 @@ import { join, relative, resolve, sep } from 'node:path';
 // Big dev-only files that public/ holds locally for /check. Never ship or precache them.
 const DEV_ONLY = ['models', 'vendor', 'vosk-check.js'];
 // Shipped but not precached: diagnostics pages nobody needs offline.
-const SKIP = [/^check\//, /^check\.js$/, /^overlay\//, /^sw\.js$/, /\.map$/];
+const SKIP = [/^check\//, /^check\.js$/, /^overlay\//, /^lan\//, /^sw\.js$/, /\.map$/];
 
 export function swPlugin(): Plugin {
   let outDir = 'dist';

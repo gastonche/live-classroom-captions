@@ -38,6 +38,10 @@ export class RoomHost {
   private local = false;
   /** Room problems (e.g. "browser-incompatible" when the web engine lacks WebRTC). */
   onError: (type: string) => void = () => {};
+  /** Every message for viewers, as sent: the desktop app forwards these to phones on the Wi-Fi. */
+  // New per page load, so viewers don't drop captions as repeats after the app restarts.
+  private localSid = 'local-' + Date.now().toString(36);
+  onBroadcast: (data: string) => void = () => {};
   private localSeq = 0;
   private localId = 0;
 
@@ -49,6 +53,17 @@ export class RoomHost {
     const saved = safeGet('lcc.code');
     this.storedCode = !!saved;
     this.state = { code: saved || newCode(), ready: false, net: 'connecting', teacher: false, live: false, paused: false, micOk: true };
+  }
+
+  /** Desktop app: no internet room at all. Viewers are reached through onBroadcast. */
+  startLocal(): void {
+    this.set({ ready: true, net: 'online' });
+  }
+
+  /** What a viewer joining now needs first: the session so far and its state. */
+  snapshot(): string {
+    const { live, paused, micOk } = this.state;
+    return encode({ t: 'sync', text: this.view.transcript, live, paused, teacher: this.teacherPresent(), mic: micOk });
   }
 
   start(): void {
@@ -87,7 +102,7 @@ export class RoomHost {
 
   /** A caption from this computer's own recognition (already through the word lists). */
   localCaption(t: 'i' | 'f', text: string): void {
-    const m = { t, id: this.localId, text, seq: ++this.localSeq, sid: 'local' } as const;
+    const m = { t, id: this.localId, text, seq: ++this.localSeq, sid: this.localSid } as const;
     if (t === 'f') {
       this.view.final(text);
       this.localId++;
@@ -246,6 +261,7 @@ export class RoomHost {
       this.lastState = k;
     }
     const data = encode(m);
+    this.onBroadcast(data);
     this.viewers.forEach((v) => v.open && v.send(data));
     if (includeTeacher && this.teacher && this.teacher.open) this.teacher.send(data);
   }

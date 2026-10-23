@@ -80,6 +80,26 @@ export async function saveTranscript(name: string, text: string): Promise<string
   return inApp ? invoke<string>('save_transcript', { name, text }) : '';
 }
 
+/** The address students open on the school Wi-Fi, e.g. http://192.168.1.20:47213/ (null if none). */
+export async function lanInfo(): Promise<{ url: string | null; clients: number }> {
+  if (inApp) return invoke('lan_info');
+  // In a browser (tests), the student page is served next to this one.
+  return { url: new URLSearchParams(location.search).get('lan') || null, clients: 0 };
+}
+
+// In a browser (tests), what would go to phones is kept on window.__lanOut.
+const lanOut: { sent: string[]; snapshot: string } = ((window as any).__lanOut = { sent: [], snapshot: '' });
+
+export function lanSend(msg: string): void {
+  if (inApp) invoke('lan_send', { msg }).catch(() => {});
+  else lanOut.sent.push(msg);
+}
+
+export function lanSnapshot(msg: string): void {
+  if (inApp) invoke('lan_snapshot', { msg }).catch(() => {});
+  else lanOut.snapshot = msg;
+}
+
 /** Recognition events from the app. Tests inject the same events through window.__asr. */
 export function onAsr(fn: (e: AsrEvent) => void): void {
   if (inApp) listen<AsrEvent>('asr', (e) => fn(e.payload));

@@ -442,3 +442,18 @@ References are written as the caption should read (`log.txt`, not "log dot txt")
   The release notes were corrected the same hour: Linux student phones are a known limit. Captions on screen work.
   **Real fix needed:** a student transport that doesn't need WebRTC in the host app, either the app serving `/view` on the school Wi-Fi itself (LAN; no internet)
   or an encrypted relay over WebSocket (internet; works through Wi-Fi client isolation).
+
+## v0.3.0 (2026-10-23): student phones over the school Wi-Fi, no internet
+- User choice after the Linux WebRTC dead end: **the app serves the student page itself on the Wi-Fi.**
+- `src-tauri/src/lan.rs`: std `TcpListener` + tungstenite. First free port in 47213..=47233, all interfaces.
+  `GET /` → `lan/index.html`; only `lan/*`, `assets/*` and root icons are served (from the app's bundled files); `..` refused.
+  `/ws`: a joining phone first gets the snapshot (`sync`: lesson so far, live/paused/mic), then every broadcast. A ping after 5 s of quiet. Max 300 phones.
+- Page side: in the app (or `?lan=URL` in a browser) the overlay runs `RoomHost.startLocal()` (no PeerJS at all),
+  forwards every viewer message through `onBroadcast` → `lan_send`, and pushes `snapshot()` when it changes (1 s check).
+  The card shows the address and its QR; `lan_info` is polled every 5 s in case the Wi-Fi changes. The menu status adds "N student phone(s) connected".
+- Local captions now use a per-launch session id, so phones don't drop new captions as repeats after the app restarts.
+- Student page `lan/` (`src/lan/main.ts`): WebSocket to the host that served it, reconnect with backoff, silence watchdog.
+- Removed the WebKitGTK WebRTC switch, its reload, the `webkit2gtk` dependency and the GStreamer packaging (the AppImage was 92 MB because of it).
+- Tests: Rust (paths, parsing, HTTP + WebSocket end to end), Playwright `lan.spec.ts` (address and QR, late join, live captions, pause, reconnect).
+  **Real app on the Mac**: student page loaded from the Mac's Wi-Fi address on port 47213 (HTML, JS, CSS 200, `/overlay/` 404), a test recording's captions arrived live, and a late joiner got the whole lesson. Not yet tried from a real phone, on Windows, or on Linux.
+- CI Linux check now loads the student page from the running app under Xvfb.

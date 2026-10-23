@@ -75,9 +75,11 @@ weaker machines get the lighter model automatically.
 
 ## Student phones
 
-The overlay already hosts a room that `/view` joins. The QR code on screen becomes the student link
-(`https://gastonche.github.io/live-classroom-captions/view/?room=CODE`). Needs internet for the introduction
-only. A later option, if classrooms lack internet: the app serves `/view` itself on the school Wi-Fi.
+Since 0.3.0 the app serves the student page itself on the school Wi-Fi (`src-tauri/src/lan.rs`): plain HTTP
+plus a WebSocket on the first free port from 47213, at the computer's local address. The QR code is that address.
+No internet, no WebRTC (Linux's WebKitGTK has none), no room code. Read-only: it serves only `lan/` and its
+assets, pushes captions, and ignores anything phones send. A joining phone first gets the lesson so far.
+Needs phones on the same network and no Wi-Fi client isolation; the first run may ask for firewall permission.
 
 ## Risks
 

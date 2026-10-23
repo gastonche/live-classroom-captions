@@ -19,7 +19,7 @@ export type Msg =
   | { t: 'welcome'; token?: string }
   | { t: 'reject'; reason: 'busy' }
   | { t: 'state'; teacher: boolean; live: boolean; paused: boolean }
-  | { t: 'sync'; text: string; live: boolean; paused: boolean; teacher: boolean };
+  | { t: 'sync'; text: string; live: boolean; paused: boolean; teacher: boolean; mic?: boolean };
 
 export type Role = 'speak' | 'view';
 

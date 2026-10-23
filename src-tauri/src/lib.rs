@@ -3,6 +3,7 @@
 // on every Space and full-screen app), puts it on the projector, and runs the menu-bar
 // menu and global shortcuts. Menu and shortcut actions go to the page as "action" events.
 mod asr;
+mod lan;
 mod models;
 
 use std::collections::HashMap;
@@ -46,6 +47,33 @@ struct Tray(Mutex<Option<TrayIcon<Wry>>>);
 /// changes; status text (download progress, room state) is updated in place.
 struct MenuCache(Mutex<(String, Option<MenuItem<Wry>>)>);
 struct Asr(Mutex<Option<asr::Session>>);
+struct LanState(Mutex<Option<lan::Lan>>);
+
+/// Where students point their phones: http://<this laptop on the Wi-Fi>:<port>/
+#[tauri::command]
+fn lan_info(app: AppHandle) -> Value {
+    let lan = app.state::<LanState>();
+    let lan = lan.0.lock().unwrap();
+    let Some(l) = lan.as_ref() else { return json!({ "url": null, "clients": 0 }) };
+    let url = lan::local_ip().map(|ip| format!("http://{ip}:{}/", l.port));
+    json!({ "url": url, "port": l.port, "clients": l.clients() })
+}
+
+/// A protocol message (JSON) for every student phone on the Wi-Fi.
+#[tauri::command]
+fn lan_send(app: AppHandle, msg: String) {
+    if let Some(l) = app.state::<LanState>().0.lock().unwrap().as_ref() {
+        l.broadcast(&msg);
+    }
+}
+
+/// What a phone that joins now receives first: the session so far.
+#[tauri::command]
+fn lan_snapshot(app: AppHandle, msg: String) {
+    if let Some(l) = app.state::<LanState>().0.lock().unwrap().as_ref() {
+        l.set_snapshot(msg);
+    }
+}
 
 /// Where the speech models live: $CAPTIONS_MODELS, else the app's data folder (where the
 /// first-run download puts them), else, during development, the benchmark's folder.
@@ -530,8 +558,9 @@ pub fn run() {
         .manage(Tray(Mutex::new(None)))
         .manage(MenuCache(Mutex::new((String::new(), None))))
         .manage(Asr(Mutex::new(None)))
+        .manage(LanState(Mutex::new(None)))
         .manage(Install(Arc::new(AtomicBool::new(false)), Mutex::new(false)))
-        .invoke_handler(tauri::generate_handler![monitors, place, cursor, reassert, autostart, set_menu, log, asr_devices, asr_start, asr_stop, save_transcript, models_status, models_install, models_cancel])
+        .invoke_handler(tauri::generate_handler![monitors, place, cursor, reassert, autostart, set_menu, log, asr_devices, asr_start, asr_stop, save_transcript, models_status, models_install, models_cancel, lan_info, lan_send, lan_snapshot])
         .setup(|app| {
             // A menu-bar app: no Dock icon, never steals focus from the lesson.
             #[cfg(target_os = "macos")]
@@ -540,19 +569,6 @@ pub fn run() {
             let window = app.get_webview_window(WINDOW).expect("overlay window");
             let _ = window.set_ignore_cursor_events(true);
 
-            // WebKitGTK ships with WebRTC switched off; student phones connect over WebRTC.
-            // Switch it on, then reload once so the page sees it.
-            #[cfg(target_os = "linux")]
-            let _ = window.with_webview(|wv| {
-                use webkit2gtk::{SettingsExt, WebViewExt};
-                let view = wv.inner();
-                if let Some(settings) = WebViewExt::settings(&view) {
-                    settings.set_enable_webrtc(true);
-                    settings.set_enable_media_stream(true);
-                    eprintln!("[native] WebKitGTK: WebRTC enabled");
-                }
-                view.reload();
-            });
             #[cfg(target_os = "macos")]
             {
                 into_panel(&window);
@@ -581,6 +597,19 @@ pub fn run() {
                 .on_menu_event(|app, ev| send_action(app, ev.id().as_ref()))
                 .build(app)?;
             *app.state::<Tray>().0.lock().unwrap() = Some(tray);
+
+            // Student phones on the school Wi-Fi: serve the bundled student page and captions.
+            let resolver = app.handle().clone();
+            let assets: std::sync::Arc<lan::Assets> = std::sync::Arc::new(move |p: &str| {
+                resolver.asset_resolver().get(p.to_string()).map(|a| (a.bytes.clone(), a.mime_type.clone()))
+            });
+            match lan::Lan::start(assets, 47213..=47233) {
+                Ok(l) => {
+                    eprintln!("[native] student page on port {} ({:?})", l.port, lan::local_ip());
+                    *app.state::<LanState>().0.lock().unwrap() = Some(l);
+                }
+                Err(e) => eprintln!("[native] student page server failed: {e}"),
+            }
 
             // Tests and demos: start the lesson by itself once the page has loaded.
             if std::env::var("CAPTIONS_AUTOSTART").is_ok() {

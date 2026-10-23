@@ -78,7 +78,7 @@ Then open **Settings**, switch the language to **Français**, and read:
 3. **Speak** the English and French scripts (step 3 above) at normal pace, from where you usually stand. Note wrong or missing words, and how long until words appear.
 4. **Silence:** stay quiet for 60 s. Nothing should appear. Then talk again: captions continue.
 5. **Over other apps:** full-screen terminal, VS Code, browser, PowerPoint or Keynote slide show. Captions stay on top, and clicks go through them.
-6. **Students:** CC menu → **Show student QR code**, scan it with a phone. Captions follow on the phone.
+6. **Students:** put a phone on the **same Wi-Fi**. CC menu → **Show student QR code**, scan it (the card shows an address like `192.168.1.20:47213`). Captions follow on the phone. Allow the network prompt if Windows or Linux asks. Then turn the phone's Wi-Fi off for 10 s and back on: it reconnects and catches up.
 7. **Mic problems:** unplug the USB mic for 10 s while live. The screen should say "Captions interrupted: microphone problem", then recover by itself when you plug it back.
 8. **End:** CC menu → **End and save transcript**. Check Documents/Captions for the `.txt` file.
 

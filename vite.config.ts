@@ -32,6 +32,7 @@ export default defineConfig({
         view: resolve(__dirname, 'view/index.html'),
         check: resolve(__dirname, 'check/index.html'),
         overlay: resolve(__dirname, 'overlay/index.html'),
+        lan: resolve(__dirname, 'lan/index.html'),
       },
     },
   },

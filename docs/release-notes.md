@@ -1,12 +1,16 @@
 **Captions** shows live captions of what the teacher says on top of everything on the classroom screen:
 terminal, editor, browser or slides. Speech is recognised **on the computer**, from a microphone
-plugged into it. Students can follow on their phones by scanning the QR code.
+plugged into it. Students on the same Wi-Fi can follow on their phones by scanning the QR code.
 
-**New in 0.2.1:** the CC menu no longer flickers while the models download, and the status no longer says
-"offline" when only the student-phone connection is unavailable.
+**New in 0.3.0: student phones connect to the computer itself, over the school Wi-Fi.** No internet needed, and it
+now works on **Linux** too. The QR code shows the computer's address (like `http://192.168.1.20:47213/`).
+Phones must be on the **same Wi-Fi** as the computer. A phone that joins late sees the lesson so far.
 
-> **Known limit on Linux:** student phones (the QR code) **can't connect** to the Linux app yet: Linux's web engine is
-> built without WebRTC. Captions on the screen work normally. A fix is being worked on.
+> **The first time**, Windows (and some Linux setups) may ask whether **Captions** may use the network: choose
+> **Allow** on private networks, or phones can't connect. Some school Wi-Fi networks keep devices from seeing each
+> other ("client isolation"); if phones can't open the address, ask IT or use a phone hotspot.
+
+Also since 0.2.1: the CC menu no longer flickers while the models download.
 
 > **Pre-release for testing.** macOS has been tested with a real microphone. Windows and Linux are new and **not yet tested on real machines**. Please report what works.
 
@@ -39,7 +43,7 @@ the connection drops, and every file is checked before use.
 
 1. **CC menu → Microphone:** pick the microphone you teach with (a clip-on or USB mic works best).
 2. **Start captions.** Allow microphone access when asked. Talk normally: grey words while you speak, white when settled.
-3. **Show student QR code:** students scan it to follow on their phones.
+3. **Show student QR code:** students on the same Wi-Fi scan it to follow on their phones.
 4. **End and save transcript:** saved in **Documents/Captions**.
 
 Keyboard shortcuts: **Mac** Ctrl+Option+Cmd, **Windows and Linux** Ctrl+Alt+Shift, with:
@@ -47,6 +51,6 @@ Keyboard shortcuts: **Mac** Ctrl+Option+Cmd, **Windows and Linux** Ctrl+Alt+Shif
 
 ## Privacy
 
-Audio never leaves the computer. Captions go only to the student phones in your room. No accounts, no tracking.
+Audio never leaves the computer. Captions go only to phones on your Wi-Fi that open the computer's address, and nowhere else. No accounts, no tracking.
 
 Speech recognition: NVIDIA Parakeet TDT 0.6B v3 (CC-BY-4.0) through sherpa-onnx (Apache-2.0); voice detection: Silero VAD (MIT).

@@ -53,6 +53,11 @@ let mics: string[] = [];
 // The student QR shows briefly at launch and at the start of a lesson, and on request.
 let showCodeUntil = Date.now() + 30_000;
 let shownCode = '';
+// Desktop app: students connect to this computer over the Wi-Fi (src-tauri/src/lan.rs).
+const lanMode = native.inApp || new URLSearchParams(location.search).has('lan');
+let lanUrl: string | null = null;
+let lanClients = 0;
+let lastSnapshot = '';
 let lastMenu = '';
 let lastLogged = '';
 // Lesson state on this computer.
@@ -81,7 +86,8 @@ function render(): void {
   $('box').hidden = !v.box;
   setChip(v.chip);
   $('card').hidden = !v.card;
-  if (v.card && st.code !== shownCode) showCode(st.code);
+  const key = lanMode ? lanUrl || '' : st.code;
+  if (v.card && key !== shownCode) showCode(key);
   pushMenu();
 }
 
@@ -99,13 +105,47 @@ function webUrl(): string {
   return location.protocol.startsWith('http') ? new URL('../', location.href).href : '';
 }
 
-/** The card is for students: it opens the follow-along page for this room. */
-function showCode(code: string): void {
-  shownCode = code;
-  $('code').textContent = code;
+/** The card is for students: it opens the follow-along page (this computer's, in the app). */
+function showCode(key: string): void {
+  shownCode = key;
+  const card = $('card');
+  const qr = $('qr') as HTMLCanvasElement;
+  if (lanMode) {
+    card.dataset.mode = 'lan';
+    $('card-label').textContent = s.studentWifiLabel;
+    $('code').textContent = key ? key.replace(/^https?:\/\//, '').replace(/\/$/, '') : '';
+    qr.hidden = !key;
+    if (key) generate(key).toCanvas(qr);
+    $('card-hint').textContent = key ? s.studentHint : s.studentNoWifi;
+    return;
+  }
+  $('code').textContent = key;
   const base = webUrl();
-  if (base) generate(base + 'view/?room=' + code).toCanvas($('qr') as HTMLCanvasElement);
-  $('card-hint').textContent = s.studentHint;
+  if (base) generate(base + 'view/?room=' + key).toCanvas(qr);
+  $('card-hint').textContent = s.studentHintRoom;
+}
+
+/** Keeps the student address current (the Wi-Fi can change) and the phone count. */
+async function watchLan(): Promise<void> {
+  try {
+    const info = await native.lanInfo();
+    lanClients = info.clients;
+    if (info.url !== lanUrl) {
+      lanUrl = info.url;
+      native.log('students at ' + (lanUrl || 'no network'));
+      render();
+    }
+  } catch {
+    /* the next check retries */
+  }
+}
+
+/** A phone that joins mid-lesson first gets the lesson so far. */
+function pushSnapshot(): void {
+  const snap = host.snapshot();
+  if (snap === lastSnapshot) return;
+  lastSnapshot = snap;
+  native.lanSnapshot(snap);
 }
 
 // ---- Lesson: start, pause, end -------------------------------------------------------
@@ -350,7 +390,7 @@ function pushMenu(): void {
       ? s.statusSetup
       : models === 'installing'
         ? menuProgress || s.statusSetup
-        : !st.ready
+        : !st.ready && !lanMode
           ? noWebrtc
             ? s.statusNoWebrtc
             : st.net === 'offline'
@@ -359,7 +399,7 @@ function pushMenu(): void {
           : fill(st.live ? (st.paused ? s.statusPausedLocal : s.statusListening) : s.statusReady, {
           code: st.code,
           mic: micName || set.mic || s.menuMicDefault,
-        });
+        }) + (lanMode && lanClients ? ' · ' + fill(s.statusStudents, { n: String(lanClients) }) : '');
   const m: native.MenuState = {
     status,
     code: st.code,
@@ -433,6 +473,9 @@ function save(): void {
   get settings() {
     return set;
   },
+  get lanUrl() {
+    return lanUrl;
+  },
   get transcript() {
     return formatTranscript(transcript, host.state.code);
   },
@@ -443,14 +486,23 @@ function boot(): void {
   applyStrings(document, s);
   style();
   host.setLocal(true);
-  noWebrtc = typeof RTCPeerConnection === 'undefined';
-  native.log(`webrtc ${noWebrtc ? 'NOT available' : 'available'}`);
-  host.onError = (type) => {
-    native.log('room error ' + type);
-    if (type === 'browser-incompatible') noWebrtc = true;
-    render();
-  };
-  host.start();
+  if (lanMode) {
+    // No internet room: captions go to phones through the app's own server.
+    host.onBroadcast = (data) => native.lanSend(data);
+    host.startLocal();
+    watchLan();
+    setInterval(watchLan, 5000);
+    setInterval(pushSnapshot, 1000);
+  } else {
+    noWebrtc = typeof RTCPeerConnection === 'undefined';
+    native.log(`webrtc ${noWebrtc ? 'NOT available' : 'available'}`);
+    host.onError = (type) => {
+      native.log('room error ' + type);
+      if (type === 'browser-incompatible') noWebrtc = true;
+      render();
+    };
+    host.start();
+  }
   native.onAction(action);
   native.onAsr(onAsr);
   native.onModels(onModels);
